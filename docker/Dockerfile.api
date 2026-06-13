@@ -1,0 +1,20 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+COPY api/go.mod api/go.sum ./
+RUN go mod download
+
+COPY api/ .
+RUN go build -o server ./cmd/main.go
+RUN go build -o migrate ./script/main.go
+
+FROM alpine:3.21
+
+WORKDIR /app
+
+COPY --from=builder /app/server .
+COPY --from=builder /app/migrate .
+EXPOSE 3000
+
+CMD ["./server"]

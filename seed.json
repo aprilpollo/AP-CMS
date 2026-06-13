@@ -1,0 +1,149 @@
+{
+  "lookups": {
+    "post_statuses": [
+      { "code": "draft", "label": "Draft" },
+      { "code": "published", "label": "Published" },
+      { "code": "archived", "label": "Archived" }
+    ],
+    "post_types": [
+      { "code": "post", "label": "Post" },
+      { "code": "page", "label": "Page" },
+      { "code": "custom", "label": "Custom" }
+    ],
+    "content_formats": [
+      { "code": "markdown", "label": "Markdown" },
+      { "code": "blocks", "label": "Blocks" }
+    ],
+    "comment_statuses": [
+      { "code": "pending", "label": "Pending" },
+      { "code": "approved", "label": "Approved" },
+      { "code": "spam", "label": "Spam" },
+      { "code": "trash", "label": "Trash" }
+    ],
+    "setting_types": [
+      { "code": "string", "label": "String" },
+      { "code": "number", "label": "Number" },
+      { "code": "boolean", "label": "Boolean" },
+      { "code": "json", "label": "JSON" }
+    ],
+    "audit_actions": [
+      { "code": "create", "label": "Create" },
+      { "code": "update", "label": "Update" },
+      { "code": "delete", "label": "Delete" },
+      { "code": "login", "label": "Login" },
+      { "code": "logout", "label": "Logout" }
+    ]
+  },
+  "roles": [
+    { "name": "Administrator", "slug": "admin" },
+    { "name": "Editor", "slug": "editor" },
+    { "name": "Author", "slug": "author" },
+    { "name": "Subscriber", "slug": "subscriber" }
+  ],
+  "permissions": [
+    { "name": "Manage users", "slug": "users.manage" },
+    { "name": "Manage roles", "slug": "roles.manage" },
+    { "name": "Manage settings", "slug": "settings.manage" },
+    { "name": "Publish posts", "slug": "posts.publish" },
+    { "name": "Edit any post", "slug": "posts.edit_any" },
+    { "name": "Edit own posts", "slug": "posts.edit_own" },
+    { "name": "Delete any post", "slug": "posts.delete_any" },
+    { "name": "Delete own posts", "slug": "posts.delete_own" },
+    { "name": "Manage media", "slug": "media.manage" },
+    { "name": "Manage categories", "slug": "categories.manage" },
+    { "name": "Moderate comments", "slug": "comments.moderate" },
+    { "name": "Read published", "slug": "posts.read" }
+  ],
+  "role_permissions": {
+    "admin": [
+      "users.manage",
+      "roles.manage",
+      "settings.manage",
+      "posts.publish",
+      "posts.edit_any",
+      "posts.edit_own",
+      "posts.delete_any",
+      "posts.delete_own",
+      "media.manage",
+      "categories.manage",
+      "comments.moderate",
+      "posts.read"
+    ],
+    "editor": [
+      "posts.publish",
+      "posts.edit_any",
+      "posts.edit_own",
+      "posts.delete_any",
+      "posts.delete_own",
+      "media.manage",
+      "categories.manage",
+      "comments.moderate",
+      "posts.read"
+    ],
+    "author": [
+      "posts.publish",
+      "posts.edit_own",
+      "posts.delete_own",
+      "media.manage",
+      "posts.read"
+    ],
+    "subscriber": ["posts.read"]
+  },
+  "settings": [
+    {
+      "key": "site_name",
+      "value": "My CMS",
+      "type": "string",
+      "group": "general"
+    },
+    {
+      "key": "site_description",
+      "value": "",
+      "type": "string",
+      "group": "general"
+    },
+    { "key": "site_url", "value": "", "type": "string", "group": "general" },
+    {
+      "key": "posts_per_page",
+      "value": "10",
+      "type": "number",
+      "group": "reading"
+    },
+    {
+      "key": "allow_comments",
+      "value": "true",
+      "type": "boolean",
+      "group": "discussion"
+    },
+    {
+      "key": "comment_moderation",
+      "value": "true",
+      "type": "boolean",
+      "group": "discussion"
+    },
+    {
+      "key": "storage_provider",
+      "value": "s3",
+      "type": "string",
+      "group": "media"
+    },
+    {
+      "key": "max_upload_mb",
+      "value": "10",
+      "type": "number",
+      "group": "media"
+    }
+  ],
+  "users": [
+    {
+      "email": "alice@example.com",
+      "avatar_url": "https://avatars.githubusercontent.com/u/158476440?v=4",
+      "display_name": "Alice Johnson",
+      "first_name": "Alice",
+      "last_name": "Johnson",
+      "bio": "I'm Alice, the administrator of this CMS.",
+      "role": "admin",
+      "password": "Password123"
+    }
+  ]
+}
