@@ -118,7 +118,7 @@ export function AppHeader({ showSidebar = true }: { showSidebar?: boolean }) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 cursor-pointer gap-2 px-2">
               <Avatar className="size-6">
-                <AvatarImage src={user?.avatar} />
+                <AvatarImage src={user?.avatar_url} />
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
               <span className="hidden max-w-28 truncate text-sm font-medium sm:block">
@@ -131,7 +131,7 @@ export function AppHeader({ showSidebar = true }: { showSidebar?: boolean }) {
             <DropdownMenuLabel className="font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user?.avatar} />
+                  <AvatarImage src={user?.avatar_url} />
                   <AvatarFallback className="rounded-lg">
                     {initials}
                   </AvatarFallback>

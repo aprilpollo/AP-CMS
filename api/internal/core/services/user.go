@@ -33,8 +33,6 @@ type userService struct {
 	verifyURL string
 }
 
-// NewUserService returns an input.UserService. email/tokens/verifyURL power the
-// email-change verification flow.
 func NewUserService(repo output.UserRepository, email output.EmailSender, tokens output.SessionStore, verifyURL string) input.UserService {
 	return &userService{repo: repo, email: email, tokens: tokens, verifyURL: verifyURL}
 }
@@ -48,7 +46,7 @@ func (s *userService) GetByID(ctx context.Context, id int64) (*domain.User, erro
 }
 
 func (s *userService) Create(ctx context.Context, in *domain.UserCreate) error {
-    
+
 	if !validPassword(in.Password) {
 		return ErrWeakPassword
 	}
@@ -66,7 +64,26 @@ func (s *userService) Create(ctx context.Context, in *domain.UserCreate) error {
 		}
 		return err
 	}
-	
+
+	return nil
+}
+
+func (s *userService) Update(ctx context.Context, id int64, in *domain.UserUpdate) error {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	if err := s.repo.Update(ctx, id, in); err != nil {
+		if isUniqueViolation(err) {
+			return ErrEmailTaken
+		}
+		return err
+	}
+
 	return nil
 }
 

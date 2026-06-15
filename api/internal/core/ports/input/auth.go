@@ -15,4 +15,6 @@ type AuthService interface {
 	Me(ctx context.Context, userID int64) (*domain.MeResult, error)
 	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword, ip string) error
+	Update(ctx context.Context, userID int64, in *domain.UserUpdate) error
+	UploadAvatar(ctx context.Context, userID int64, file domain.UploadAvatar) error
 }

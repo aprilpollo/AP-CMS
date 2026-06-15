@@ -12,9 +12,12 @@ export type User = AuthUser & {
   id: string
   email: string
   display_name: string
+  first_name: string
+  last_name: string
+  bio?: string
   role_id: number
   role: Role
-  avatar?: string
+  avatar_url?: string
   is_active: boolean
   created_at: string
   updated_at: string

@@ -1,10 +1,12 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"apcms/internal/core/ports/input"
 	"apcms/internal/core/ports/output"
 	jwtpkg "apcms/internal/pkg/jwt"
+	pkgimage "apcms/internal/pkg/image"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -35,6 +38,7 @@ type authService struct {
 	audit      output.AuditRepository
 	authz      output.AuthzRepository
 	email      output.EmailSender
+	fileStore  output.FileStorage
 	jwt        *jwtpkg.Manager
 	refreshTTL time.Duration
 	resetURL   string
@@ -47,12 +51,13 @@ func NewAuthService(
 	audit output.AuditRepository,
 	authz output.AuthzRepository,
 	email output.EmailSender,
+	fileStore output.FileStorage,
 	jwt *jwtpkg.Manager,
 	refreshTTL time.Duration,
 	resetURL string,
 ) input.AuthService {
 	return &authService{
-		users: users, session: session, audit: audit, authz: authz,
+		users: users, session: session, audit: audit, authz: authz, fileStore: fileStore,
 		email: email, jwt: jwt, refreshTTL: refreshTTL, resetURL: resetURL,
 	}
 }
@@ -193,6 +198,37 @@ func (s *authService) ResetPassword(ctx context.Context, token, newPassword, ip 
 		})
 	}
 	return nil
+}
+
+func (s *authService) Update(ctx context.Context, userID int64, in *domain.UserUpdate) error {
+	if err := s.users.Update(ctx, userID, in); err != nil {
+		if isUniqueViolation(err) {
+			return ErrEmailTaken
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *authService) UploadAvatar(ctx context.Context, userID int64, file domain.UploadAvatar) error {
+	if s.fileStore == nil {
+		return errors.New("file storage not configured")
+	}
+
+	webpBytes, err := pkgimage.ConvertToWebP(file.File, pkgimage.DefaultQuality)
+	if err != nil {
+		return fmt.Errorf("avatar: convert to webp: %w", err)
+	}
+
+	path := "avatars/" + strconv.FormatInt(userID, 10) + ".webp"
+
+	url, err := s.fileStore.Upload(ctx, path, bytes.NewReader(webpBytes), int64(len(webpBytes)), "image/webp")
+	if err != nil {
+		return err
+	}
+
+	return s.users.UpdateAvatar(ctx, userID, url)
 }
 
 // issue mints a new access token and a fresh opaque refresh token (stored in Redis).

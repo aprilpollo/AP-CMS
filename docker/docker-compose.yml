@@ -83,6 +83,27 @@ services:
       - apcms-network
     restart: unless-stopped
 
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z-cpuv1
+    container_name: cms-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=12345678
+    command: >
+      minio server /mnt/data
+      --console-address ":9001"
+     # --license /minio.license
+    volumes:
+      - ./data:/mnt/data
+      #- ./minio.license:/minio.license
+    networks:
+      - apcms-network
+    restart: unless-stopped
+
+
 networks:
   apcms-network:
     driver: bridge

@@ -1,5 +1,7 @@
 package domain
 
+import "io"
+
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -36,4 +38,10 @@ type AuditEntry struct {
 type MeResult struct {
 	User        *User    `json:"user"`
 	Permissions []string `json:"permissions"`
+}
+
+type UploadAvatar struct {
+	File io.Reader 
+	Size int64
+	ContentType string
 }

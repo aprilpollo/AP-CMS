@@ -20,6 +20,11 @@ func RegisterAuthRoutes(app *fiber.App, h *handler.AuthHandler, jwtMw fiber.Hand
 		auth.Post("/logout", h.Logout)
 		auth.Post("/forgot-password", h.ForgotPassword)
 		auth.Post("/reset-password", h.ResetPassword)
+		auth.Post("/me/avatar", jwtMw, h.UploadAvatar)
+	}
+
+	{
+		auth.Put("/me", jwtMw, h.Update)
 	}
 
 }
@@ -29,10 +34,14 @@ func RegisterUsersRoutes(app *fiber.App, h *handler.UserHandler, jwtMw fiber.Han
 
 	{
 		users.Get("/", middleware.RequirePermission(authz, "users.manage"), h.Gets)
-		// users.Get("/:id", h.GetByID)
+		users.Get("/:id", middleware.RequirePermission(authz, "users.manage"), h.GetByID)
 	}
 
 	{
-		// users.Post("/", middleware.RequirePermission(authz, "users.manage"), h.Create)
+		users.Post("/", middleware.RequirePermission(authz, "users.manage"), h.Create)
+	}
+
+	{
+		users.Put("/:id", middleware.RequirePermission(authz, "users.manage"), h.Update)
 	}
 }

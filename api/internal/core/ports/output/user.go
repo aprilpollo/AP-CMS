@@ -13,5 +13,7 @@ type UserRepository interface {
 	FindByID(ctx context.Context, id int64) (*domain.User, error)
 	FindByEmail(ctx context.Context, email string) (*domain.User, error)
 	Save(ctx context.Context, user *domain.UserCreate) error
+	Update(ctx context.Context, id int64, user *domain.UserUpdate) error
 	UpdatePassword(ctx context.Context, id, passwordHash string) error
+	UpdateAvatar(ctx context.Context, id int64, avatarURL string) error
 }

@@ -3,13 +3,12 @@ package repository
 import (
 	"context"
 	"errors"
-	"time"
 
 	"apcms/internal/adapters/storage/orm/models"
 	"apcms/internal/core/domain"
 	"apcms/internal/core/ports/output"
 	"apcms/internal/pkg/query"
-
+	"apcms/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -25,8 +24,6 @@ func (r *userRepository) FindAll(ctx context.Context, opts query.QueryOptions) (
 	var rows []models.UserModel
 	var total int64
 
-	// total reflects the filters (excluding pagination); only the rows query adds
-	// limit/offset.
 	countScope := query.ApplyToGorm(r.db.WithContext(ctx).Model(&models.UserModel{}), query.QueryOptions{Filters: opts.Filters})
 	if err := countScope.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -84,9 +81,23 @@ func (r *userRepository) Save(ctx context.Context, user *domain.UserCreate) erro
 	return nil
 }
 
+func (r *userRepository) Update(ctx context.Context, id int64, user *domain.UserUpdate) error {
+	return r.db.WithContext(ctx).
+		Model(&models.UserModel{}).
+		Where("id = ?", id).
+		Updates(utils.StructToMap(user)).Error
+}
+
 func (r *userRepository) UpdatePassword(ctx context.Context, id, passwordHash string) error {
 	return r.db.WithContext(ctx).
 		Model(&models.UserModel{}).
 		Where("id = ?", id).
-		Updates(map[string]any{"password_hash": passwordHash, "updated_at": time.Now()}).Error
+		Updates(map[string]any{"password_hash": passwordHash}).Error
+}
+
+func (r *userRepository) UpdateAvatar(ctx context.Context, id int64, avatarURL string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.UserModel{}).
+		Where("id = ?", id).
+		Updates(map[string]any{"avatar_url": avatarURL}).Error
 }

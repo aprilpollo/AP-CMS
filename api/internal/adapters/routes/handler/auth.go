@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"errors"
-	"strconv"
-    "apcms/internal/core/domain"
+	"apcms/internal/core/domain"
 	"apcms/internal/core/ports/input"
 	"apcms/internal/core/services"
+	"errors"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -93,7 +93,7 @@ func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 
 func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 	var req domain.ResetPasswordRequest
-	
+
 	if err := c.BodyParser(&req); err != nil {
 		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
 	}
@@ -132,4 +132,60 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 		return ResError(c, fiber.StatusNotFound, "NOT_FOUND", "user not found")
 	}
 	return ResOk(c, fiber.StatusOK, me, nil, nil)
+}
+
+func (h *AuthHandler) Update(c *fiber.Ctx) error {
+
+	userIDStr, _ := c.Locals("userID").(string)
+	if userIDStr == "" {
+		return ResError(c, fiber.StatusUnauthorized, "UNAUTHORIZED", "missing authentication")
+	}
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return ResError(c, fiber.StatusUnauthorized, "UNAUTHORIZED", "invalid user identity")
+	}
+
+	var req domain.UserUpdate
+	if err := c.BodyParser(&req); err != nil {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+	}
+
+	err = h.svc.Update(c.Context(), userID, &req)
+	if err != nil {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+	}
+	return ResOk(c, fiber.StatusOK, fiber.Map{"message": "user updated"}, nil, nil)
+}
+
+func (h *AuthHandler) UploadAvatar(c *fiber.Ctx) error {
+	userIDStr, _ := c.Locals("userID").(string)
+	if userIDStr == "" {
+		return ResError(c, fiber.StatusUnauthorized, "UNAUTHORIZED", "missing authentication")
+	}
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return ResError(c, fiber.StatusUnauthorized, "UNAUTHORIZED", "invalid user identity")
+	}
+
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", "avatar file is required")
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return ResError(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "failed to open uploaded file")
+	}
+	defer file.Close()
+
+	upload := domain.UploadAvatar{
+		File:        file,
+		Size:        fileHeader.Size,
+		ContentType: fileHeader.Header.Get("Content-Type"),
+	}
+
+	if err := h.svc.UploadAvatar(c.Context(), userID, upload); err != nil {
+		return ResError(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+	}
+	return ResOk(c, fiber.StatusOK, fiber.Map{"message": "avatar uploaded"}, nil, nil)
 }

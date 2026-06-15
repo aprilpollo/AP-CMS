@@ -7,9 +7,10 @@ import (
 	"apcms/internal/adapters/routes/handler"
 	"apcms/internal/adapters/routes/middleware"
 	"apcms/internal/adapters/storage/cache"
-	//"apcms/internal/adapters/storage/objectstore"
+	"apcms/internal/adapters/storage/objectstore"
 	"apcms/internal/adapters/storage/orm"
 	"apcms/internal/adapters/storage/repository"
+	"apcms/internal/core/ports/output"
 	"apcms/internal/core/services"
 	jwtpkg "apcms/internal/pkg/jwt"
 	"fmt"
@@ -23,8 +24,6 @@ import (
 	"runtime/debug"
 	"time"
 )
-
-const accessTokenTTL = 15 * time.Minute
 
 func main() {
 	cfg, err := config.GetConfig()
@@ -59,20 +58,21 @@ func main() {
 	emailSender := email.NewClient(cfg.EmailAPI.ServiceURL)
 
 	// Object storage (S3/MinIO) — non-fatal: media uploads degrade gracefully if down.
-	// fileStorage, err := objectstore.NewMinioStorage(cfg.S3)
-	// if err != nil {
-	// 	log.Printf("[WARN] object storage unavailable: %v", err)
-	// 	fileStorage = nil
-	// } else {
-	// 	fmt.Println("✔ [INFO] Object Storage Connection")
-	// }
+	var fileStorage output.FileStorage
+	if fs, fsErr := objectstore.NewMinioStorage(cfg.S3); fsErr != nil {
+		log.Printf("[WARN] object storage unavailable: %v", fsErr)
+	} else {
+		fileStorage = fs
+		fmt.Println("✔ [INFO] Object Storage Connection")
+	}
 
 	// --- Auth primitives ---
-	jwtManager := jwtpkg.NewManager(cfg.JWT.SecretKey, cfg.JWT.Issuer, accessTokenTTL)
-	refreshTTL := time.Duration(cfg.JWT.JwtExpireDaysCount) * 24 * time.Hour
+	tokenTTL := time.Duration(cfg.JWT.JwtExpireDaysCount) * 24 * time.Hour
+	jwtManager := jwtpkg.NewManager(cfg.JWT.SecretKey, cfg.JWT.Issuer, tokenTTL)
+	refreshTTL := tokenTTL
 
 	// --- Services (core / use cases) ---
-	authSvc := services.NewAuthService(userRepo, sessionStore, auditRepo, authzRepo, emailSender, jwtManager, refreshTTL, cfg.EmailAPI.ResetURL)
+	authSvc := services.NewAuthService(userRepo, sessionStore, auditRepo, authzRepo, emailSender, fileStorage, jwtManager, refreshTTL, cfg.EmailAPI.ResetURL)
 	userSvc := services.NewUserService(userRepo, emailSender, sessionStore, cfg.EmailAPI.VerifyURL)
 
 	// --- Handlers (input adapters) ---
