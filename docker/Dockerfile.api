@@ -2,6 +2,8 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
+RUN apk add --no-cache gcc musl-dev libwebp-dev
+
 COPY api/go.mod api/go.sum ./
 RUN go mod download
 
@@ -12,6 +14,8 @@ RUN go build -o migrate ./script/main.go
 FROM alpine:3.21
 
 WORKDIR /app
+
+RUN apk add --no-cache libwebp
 
 COPY --from=builder /app/server .
 COPY --from=builder /app/migrate .

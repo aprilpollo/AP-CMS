@@ -45,3 +45,15 @@ func RegisterUsersRoutes(app *fiber.App, h *handler.UserHandler, jwtMw fiber.Han
 		users.Put("/:id", middleware.RequirePermission(authz, "users.manage"), h.Update)
 	}
 }
+
+func RegisterMediaRoutes(app *fiber.App, h *handler.MediaHandler, jwtMw fiber.Handler, authz output.AuthzRepository) {
+	media := app.Group("/api/v1/media", jwtMw)
+
+	{
+		media.Get("/", middleware.RequirePermission(authz, "media.manage"), h.Gets)
+	}
+
+	{
+		media.Post("/", middleware.RequirePermission(authz, "media.manage"), h.Upload)
+	}
+}

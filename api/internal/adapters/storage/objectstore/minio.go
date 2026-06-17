@@ -49,7 +49,7 @@ func NewMinioStorage(cfg *config.S3) (output.FileStorage, error) {
 	s := &minioStorage{
 		client:   client,
 		bucket:   cfg.Bucket,
-		endpoint: strings.TrimRight(cfg.Endpoint, "/"),
+		endpoint: strings.TrimRight(cfg.PublicURL, "/"),
 		secure:   secure,
 	}
 

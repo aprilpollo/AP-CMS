@@ -14,7 +14,7 @@ type (
 		Database *Database
 		Redis    *Redis
 		Oauth    *Oauth
-		Minios3  *Minios3
+		// Minios3  *Minios3
 		S3       *S3
 		EmailAPI *EmailAPI
 		Webhook  *Webhook
@@ -22,6 +22,7 @@ type (
 
 	S3 struct {
 		Endpoint  string
+		PublicURL string
 		AccessKey string
 		SecretKey string
 		Bucket    string
@@ -70,15 +71,15 @@ type (
 		ClientID string
 	}
 
-	Minios3 struct {
-		Endpoint       string
-		EndpointPublic string
-		AccessKey      string
-		SecretKey      string
-		Bucket         string
-		ExpireDays     int
-		UseSSL         bool
-	}
+	// Minios3 struct {
+	// 	Endpoint       string
+	// 	EndpointPublic string
+	// 	AccessKey      string
+	// 	SecretKey      string
+	// 	Bucket         string
+	// 	ExpireDays     int
+	// 	UseSSL         bool
+	// }
 
 	EmailAPI struct {
 		URL        string
@@ -133,18 +134,19 @@ func GetConfig() (*Config, error) {
 		},
 	}
 
-	minios3 := &Minios3{
-		Endpoint:       os.Getenv("MINIO_ENDPOINT"),
-		EndpointPublic: os.Getenv("MINIO_ENDPOINT_PUBLIC"),
-		AccessKey:      os.Getenv("MINIO_ACCESS_KEY"),
-		SecretKey:      os.Getenv("MINIO_SECRET_KEY"),
-		Bucket:         os.Getenv("MINIO_BUCKET"),
-		ExpireDays:     getEnvAsInt("MINIO_EXPIRE_DAY", 7),
-		UseSSL:         os.Getenv("MINIO_USE_SSL") == "true",
-	}
+	// minios3 := &Minios3{
+	// 	Endpoint:       os.Getenv("MINIO_ENDPOINT"),
+	// 	EndpointPublic: os.Getenv("MINIO_ENDPOINT_PUBLIC"),
+	// 	AccessKey:      os.Getenv("MINIO_ACCESS_KEY"),
+	// 	SecretKey:      os.Getenv("MINIO_SECRET_KEY"),
+	// 	Bucket:         os.Getenv("MINIO_BUCKET"),
+	// 	ExpireDays:     getEnvAsInt("MINIO_EXPIRE_DAY", 7),
+	// 	UseSSL:         os.Getenv("MINIO_USE_SSL") == "true",
+	// }
 
 	s3 := &S3{
 		Endpoint:  os.Getenv("S3_ENDPOINT_URL"),
+		PublicURL: os.Getenv("S3_PUBLIC_URL"),
 		AccessKey: os.Getenv("S3_ACCESS_KEY_ID"),
 		SecretKey: os.Getenv("S3_SECRET_ACCESS_KEY"),
 		Bucket:    os.Getenv("S3_BUCKET_NAME"),
@@ -169,7 +171,7 @@ func GetConfig() (*Config, error) {
 		Database: database,
 		Redis:    redis,
 		Oauth:    oauth,
-		Minios3:  minios3,
+		// Minios3:  minios3,
 		S3:       s3,
 		EmailAPI: emailAPI,
 		Webhook:  webhook,

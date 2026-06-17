@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"apcms/internal/core/domain"
+	"time"
+)
 
 type MediaModel struct {
 	ID              int64  `gorm:"primaryKey;autoIncrement"`
@@ -20,3 +23,20 @@ type MediaModel struct {
 }
 
 func (MediaModel) TableName() string { return "media" }
+
+func (m *MediaModel) ToDomain() *domain.Media {
+	return &domain.Media{
+		ID:              m.ID,
+		UploaderID:      m.UploaderID,
+		Filename:        m.Filename,
+		OriginalName:    m.OriginalName,
+		MimeType:        m.MimeType,
+		URL:             m.URL,
+		StorageProvider: m.StorageProvider,
+		SizeBytes:       m.SizeBytes,
+		Width:           m.Width,
+		Height:          m.Height,
+		AltText:         m.AltText,
+		CreatedAt:       m.CreatedAt,
+	}
+}

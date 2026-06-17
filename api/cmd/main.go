@@ -54,6 +54,7 @@ func main() {
 	authzRepo := repository.NewAuthzRepository(db.GetDB())
 	auditRepo := repository.NewAuditRepository(db.GetDB())
 	userRepo := repository.NewUserRepository(db.GetDB())
+	mediaRepo := repository.NewMediaRepository(db.GetDB())
 	sessionStore := cache.NewSessionStore(redis)
 	emailSender := email.NewClient(cfg.EmailAPI.ServiceURL)
 
@@ -74,10 +75,12 @@ func main() {
 	// --- Services (core / use cases) ---
 	authSvc := services.NewAuthService(userRepo, sessionStore, auditRepo, authzRepo, emailSender, fileStorage, jwtManager, refreshTTL, cfg.EmailAPI.ResetURL)
 	userSvc := services.NewUserService(userRepo, emailSender, sessionStore, cfg.EmailAPI.VerifyURL)
+	mediaSvc := services.NewMediaService(mediaRepo, fileStorage)
 
 	// --- Handlers (input adapters) ---
 	authHandler := handler.NewAuthHandler(authSvc)
 	userHandler := handler.NewUserHandler(userSvc)
+	mediaHandler := handler.NewMediaHandler(mediaSvc)
 
 	// --- Middleware ---
 	jwtMiddleware := middleware.JWT(jwtManager)
@@ -125,7 +128,7 @@ func main() {
 
 	routes.RegisterAuthRoutes(app, authHandler, jwtMiddleware)
 	routes.RegisterUsersRoutes(app, userHandler, jwtMiddleware, authzRepo)
-
+	routes.RegisterMediaRoutes(app, mediaHandler, jwtMiddleware, authzRepo)
 	// --- Start server ---
 	if err := app.Listen(fmt.Sprintf(":%s", cfg.App.ApiPort)); err != nil {
 		log.Println(err)

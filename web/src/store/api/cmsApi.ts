@@ -216,7 +216,7 @@ export const cmsApi = api.injectEndpoints({
 
     uploadMedia: build.mutation<Media, FormData>({
       query: (body) => ({
-        url: "/api/v1/media/upload",
+        url: "/api/v1/media",
         method: "POST",
         body,
       }),
