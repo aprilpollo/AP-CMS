@@ -30,7 +30,7 @@ type PostModel struct {
 	UpdatedAt        time.Time  `gorm:"not null;default:now()"`
 
 	Author *UserModel `gorm:"foreignKey:AuthorID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	// Categories (m2m) are managed via PostCategoryModel and the vw_post view,
+	// Categories (m2m) are managed via PostCategoriesModel and the vw_post view,
 	// mirroring how tags are handled — no GORM association is declared here.
 }
 

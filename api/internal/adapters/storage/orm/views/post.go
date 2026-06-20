@@ -3,6 +3,7 @@ package views
 import (
 	"encoding/json"
 	"time"
+    "apcms/internal/core/domain"
 )
 
 // vwPost flattens a post together with its lookup codes, author, categories, and
@@ -113,3 +114,47 @@ type VWPost struct {
 }
 
 func (VWPost) TableName() string { return "vw_post" }
+
+
+func (v *VWPost) ToDomain() *domain.Post {
+	post := &domain.Post{
+		ID:               v.ID,
+		Title:            v.Title,
+		Slug:             v.Slug,
+		Content:          v.Content,
+		Excerpt:          v.Excerpt,
+		FeaturedImageURL: v.FeaturedImageURL,
+		ReadingTimeMin:   v.ReadingTimeMin,
+		PublishedAt:      v.PublishedAt,
+		CreatedAt:        v.CreatedAt,
+		UpdatedAt:        v.UpdatedAt,
+
+		Status:        v.StatusCode,
+		Type:          v.TypeCode,
+		ContentFormat: v.ContentFormat,
+	}
+
+	if v.AuthorID != nil {
+		post.AuthorID = v.AuthorID
+		post.Author = &domain.User{
+			ID:          *v.AuthorID,
+			Email:       *v.AuthorEmail,
+			DisplayName: *v.AuthorDisplayName,
+			AvatarURL:   v.AuthorAvatarURL,
+			RoleID:      *v.AuthorRoleID,
+			IsActive:    *v.AuthorIsActive,
+			LastLoginAt: v.AuthorLastLoginAt,
+			CreatedAt:   *v.AuthorCreatedAt,
+			UpdatedAt:   *v.AuthorUpdatedAt,
+		}
+	}
+
+	if err := json.Unmarshal(v.Categories, &post.Categories); err != nil {
+		return nil
+	}
+	if err := json.Unmarshal(v.Tags, &post.Tags); err != nil {
+		return nil
+	}
+
+	return post
+}

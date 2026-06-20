@@ -55,6 +55,9 @@ func main() {
 	auditRepo := repository.NewAuditRepository(db.GetDB())
 	userRepo := repository.NewUserRepository(db.GetDB())
 	mediaRepo := repository.NewMediaRepository(db.GetDB())
+	postRepo := repository.NewPostRepository(db.GetDB())
+	categoriesRepo := repository.NewCategoriesRepository(db.GetDB())
+	tagRepo := repository.NewTagRepository(db.GetDB())
 	sessionStore := cache.NewSessionStore(redis)
 	emailSender := email.NewClient(cfg.EmailAPI.ServiceURL)
 
@@ -76,11 +79,17 @@ func main() {
 	authSvc := services.NewAuthService(userRepo, sessionStore, auditRepo, authzRepo, emailSender, fileStorage, jwtManager, refreshTTL, cfg.EmailAPI.ResetURL)
 	userSvc := services.NewUserService(userRepo, emailSender, sessionStore, cfg.EmailAPI.VerifyURL)
 	mediaSvc := services.NewMediaService(mediaRepo, fileStorage)
+	postSvc := services.NewPostService(postRepo, tagRepo)
+	categoriesSvc := services.NewCategoriesService(categoriesRepo)
+	tagSvc := services.NewTagService(tagRepo)
 
 	// --- Handlers (input adapters) ---
 	authHandler := handler.NewAuthHandler(authSvc)
 	userHandler := handler.NewUserHandler(userSvc)
 	mediaHandler := handler.NewMediaHandler(mediaSvc)
+	postHandler := handler.NewPostHandler(postSvc, authzRepo)
+	categoriesHandler := handler.NewCategoriesHandler(categoriesSvc)
+	tagHandler := handler.NewTagHandler(tagSvc)
 
 	// --- Middleware ---
 	jwtMiddleware := middleware.JWT(jwtManager)
@@ -129,6 +138,9 @@ func main() {
 	routes.RegisterAuthRoutes(app, authHandler, jwtMiddleware)
 	routes.RegisterUsersRoutes(app, userHandler, jwtMiddleware, authzRepo)
 	routes.RegisterMediaRoutes(app, mediaHandler, jwtMiddleware, authzRepo)
+	routes.RegisterPostsRoutes(app, postHandler, jwtMiddleware, authzRepo)
+	routes.RegisterCategoriesRoutes(app, categoriesHandler, jwtMiddleware, authzRepo)
+	routes.RegisterTagsRoutes(app, tagHandler, jwtMiddleware, authzRepo)
 	// --- Start server ---
 	if err := app.Listen(fmt.Sprintf(":%s", cfg.App.ApiPort)); err != nil {
 		log.Println(err)

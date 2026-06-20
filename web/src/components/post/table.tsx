@@ -146,16 +146,23 @@ const columns: ColumnDef<Post>[] = [
   {
     accessorKey: "actions",
     header: "",
-    cell: () => <DropdownMenuDestructive />,
+    cell: ({ row, table }) => (
+      <DropdownMenuDestructive
+        id={row.original.id}
+        slug={row.original.slug}
+        onDeleted={(table.options.meta as { onDeleted?: () => void })?.onDeleted}
+      />
+    ),
     size: 30,
   },
 ]
 
-export function PostsTable({ data }: { data: Post[] }) {
+export function PostsTable({ data, onDeleted }: { data: Post[]; onDeleted?: () => void }) {
   const table = useReactTable({
     columns,
     data,
     getCoreRowModel: getCoreRowModel(),
+    meta: { onDeleted },
   })
 
   return (

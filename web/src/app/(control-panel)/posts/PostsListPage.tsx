@@ -4,12 +4,31 @@ import { Plus, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PostsTable } from "@/components/post/table"
+import { getPosts } from "@/store/api/post"
+import type { Post } from "@/types/cms"
 import PageContainer from "@/shared/PageContainer"
 
 function PostsListPage() {
   const navigate = useNavigate()
+  const [posts, setPosts] = useState<Post[]>([])
   const [searchInput, setSearchInput] = useState("")
   const [_search, setSearch] = useState("")
+
+  const GetPosts = async () => {
+    const res = await getPosts()
+    const data = (await res.json()) as {
+      code: number
+      error?: string
+      message: string
+      payload: Post[]
+    }
+    if (data.code === 200) {
+      setPosts(data.payload)
+    }
+  }
+  useEffect(() => {
+    GetPosts()
+  }, [])
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -45,31 +64,7 @@ function PostsListPage() {
           />
         </div>
       </div>
-      <PostsTable data={[]} />
-
-      {/* <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete post?</DialogTitle>
-            <DialogDescription>
-              “{toDelete?.title}” will be permanently deleted along with its
-              comments, tags and revisions.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog> */}
+      <PostsTable data={posts} onDeleted={GetPosts} />
     </PageContainer>
   )
 }

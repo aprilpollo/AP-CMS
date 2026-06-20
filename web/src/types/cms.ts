@@ -38,7 +38,7 @@ export type Tag = {
 }
 
 export type Post = {
-  id: string
+  id: string | number
   title: string
   slug: string
   content?: string | null

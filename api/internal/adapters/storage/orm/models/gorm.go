@@ -22,11 +22,11 @@ func All() ModelList {
 		// core entities
 		&RolePermissionModel{}, // → roles, permissions
 		&UserModel{},           // → roles
-		&CategoryModel{},       // → categories (self)
+		&CategoriesModel{},       // → categories (self)
 		&MediaModel{},          // → users
 		&PostModel{},           // → users, lookups
 		&PostTagModel{},        // → posts, tags
-		&PostCategoryModel{},   // → posts, categories
+		&PostCategoriesModel{},   // → posts, categories
 		&PostMetaModel{},       // → posts
 		&PostRevisionModel{},   // → posts, users, content_formats
 		&CommentModel{},        // → posts, users, comments (self), comment_statuses
