@@ -34,7 +34,7 @@ export type PostListResult = {
 }
 
 export type MediaListParams = {
-  mime_type?: string
+  mime_type_in?: string
   _limit?: number
   _offset?: number
 }
