@@ -50,13 +50,13 @@ type PostWrite struct {
 }
 
 type UpdatePostInput struct {
-	Title            *string
-	Content          *string
-	ContentFormat    *string
-	Excerpt          *string
-	CategoryIDs      *[]int64
-	Tags             *[]string
-	FeaturedImageURL *string
+	Title            *string   `json:"title"`
+	Content          *string   `json:"content"`
+	ContentFormat    *string   `json:"content_format"`
+	Excerpt          *string   `json:"excerpt"`
+	CategoryIDs      *[]int64  `json:"category_ids"`
+	Tags             *[]string `json:"tags"`
+	FeaturedImageURL *string   `json:"featured_image_url"`
 }
 
 type PostUpdate struct {
@@ -64,7 +64,7 @@ type PostUpdate struct {
 	Content          *string  `json:"content"`
 	ContentFormatID  *int64   `json:"content_format_id"`
 	Excerpt          *string  `json:"excerpt"`
-	FeaturedImageURL *string  `json:"featured_image_url"`
+	FeaturedImageURL *string  `json:"featured_image_url"` //featured_image_url featured_image_url
 	TagIDs           *[]int64 `json:"-"`
 	CategoryIDs      *[]int64 `json:"-"`
 }

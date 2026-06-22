@@ -63,7 +63,7 @@ export function EditorToolbar({
           className="rounded-sm"
         >
           <Save className="text-muted-foreground" />
-          Save draft
+          Save
         </Button>
 
         {(!isEdit || postStatus !== "published") && (

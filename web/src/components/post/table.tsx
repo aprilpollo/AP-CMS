@@ -4,9 +4,9 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/lib/cms"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
@@ -55,20 +55,7 @@ const columns: ColumnDef<Post>[] = [
     header: "Status",
     cell: ({ row }) => {
       const status = row.getValue<PostStatus>("status")
-      return (
-        <Badge
-          variant={status === "archived" ? "secondary" : "default"}
-          className={cn(
-            "rounded-sm capitalize",
-            status === "published" &&
-              "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
-            status === "draft" &&
-              "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-          )}
-        >
-          {status}
-        </Badge>
-      )
+      return <StatusBadge status={status} />
     },
     size: 80,
   },
@@ -150,14 +137,22 @@ const columns: ColumnDef<Post>[] = [
       <DropdownMenuDestructive
         id={row.original.id}
         slug={row.original.slug}
-        onDeleted={(table.options.meta as { onDeleted?: () => void })?.onDeleted}
+        onDeleted={
+          (table.options.meta as { onDeleted?: () => void })?.onDeleted
+        }
       />
     ),
     size: 30,
   },
 ]
 
-export function PostsTable({ data, onDeleted }: { data: Post[]; onDeleted?: () => void }) {
+export function PostsTable({
+  data,
+  onDeleted,
+}: {
+  data: Post[]
+  onDeleted?: () => void
+}) {
   const table = useReactTable({
     columns,
     data,

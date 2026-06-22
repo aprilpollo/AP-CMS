@@ -4,16 +4,16 @@ import type { Category, PostStatus } from "@/types/cms"
 
 
 const statusStyles: Record<PostStatus, string> = {
-  draft: "bg-muted text-muted-foreground",
+  draft: "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
   published:
-    "border-transparent bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+    "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
   archived:
-    "border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+    "bg-muted text-muted-foreground",
 }
 
 export function StatusBadge({ status }: { status: PostStatus }) {
   return (
-    <Badge variant="outline" className={cn(statusStyles[status], "capitalize rounded-sm")}>
+    <Badge  className={cn(statusStyles[status], "capitalize rounded-sm")}>
       {status}
     </Badge>
   )

@@ -5,7 +5,6 @@ import type { Option } from "@/components/ui/multiselect"
 import type { Option as OptionCheckbox } from "@/components/combobox-multiple"
 import RichTextEditor from "@/components/editor/RichTextEditor"
 import type { Editor } from "@tiptap/react"
-import MediaPickerDialog from "@/components/media/MediaPickerDialog"
 import { apiError } from "@/utils/apiError"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -131,6 +130,11 @@ export default function PostEditorPage() {
       pickerResolve.current = null
     }
     setPickerOpen(open)
+  }
+
+  async function pickFeaturedImage() {
+    const url = await pickImage()
+    if (url) setFeatured(url)
   }
 
   async function handleFiles(files: FileList | null) {
@@ -297,6 +301,11 @@ export default function PostEditorPage() {
             isEdit={isEdit}
             post={post}
             changing={changing}
+            pickerOpen={pickerOpen}
+            onPickerOpenChange={handlePickerOpenChange}
+            onPicked={handlePicked}
+            featured={featured}
+            onPickFeatured={pickFeaturedImage}
             onSetStatus={setStatus}
             onDelete={() => setConfirmDelete(true)}
             onRestored={populate}
@@ -310,11 +319,6 @@ export default function PostEditorPage() {
         onDelete={doDelete}
       />
 
-      <MediaPickerDialog
-        open={pickerOpen}
-        onOpenChange={handlePickerOpenChange}
-        onSelect={handlePicked}
-      />
     </>
   )
 }
