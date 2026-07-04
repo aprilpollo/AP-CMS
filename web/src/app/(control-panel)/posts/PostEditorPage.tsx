@@ -1,4 +1,4 @@
-import { useCallback, useEffect,  useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 import type { Option } from "@/components/ui/multiselect"
@@ -12,15 +12,16 @@ import {
   useCreatePostMutation,
   useDeletePostMutation,
   useGetPostQuery,
-//   useListCategoriesQuery,
-//   useListTagsQuery,
+  useListCategoriesQuery,
+  useListTagsQuery,
   useUpdatePostMutation,
   useListMediaQuery,
   useUploadMediaMutation,
   type PostBody,
   type MediaListParams,
 } from "@/store/api/cmsApi"
-import type { Media, Post } from "@/types/cms"
+import type { Category, Media, Post } from "@/types/cms"
+import { buildCategoryTree } from "@/lib/cms"
 import { EditorToolbar } from "@/components/post/editor/EditorToolbar"
 import { LeftPanel } from "@/components/post/editor/LeftPanel"
 import { RightPanel } from "@/components/post/editor/RightPanel"
@@ -38,7 +39,7 @@ export default function PostEditorPage() {
   const { data: post, isLoading: loadingPost } = useGetPostQuery(slug ?? "", {
     skip: !isEdit,
   })
-//   const { data: categories = [] } = useListCategoriesQuery()
+  const { data: categories = [] } = useListCategoriesQuery()
 
   const params: MediaListParams = {
     _limit: 10,
@@ -70,24 +71,22 @@ export default function PostEditorPage() {
   }, [loadingMedia, hasMore])
   
 
-//   const categoryOptions = useMemo<OptionCheckbox[]>(
-//     () =>
-//       categories.map((c) => ({
-//         value: String(c.id),
-//         label: c.name,
-//         children: c.children?.map((ch) => ({
-//           value: String(ch.id),
-//           label: ch.name,
-//         })),
-//       })),
-//     [categories]
-//   )
+  const categoryOptions = useMemo<OptionCheckbox[]>(() => {
+    function toOption(c: Category): OptionCheckbox {
+      return {
+        value: String(c.id),
+        label: c.name,
+        children: c.children?.map(toOption),
+      }
+    }
+    return buildCategoryTree(categories).map(toOption)
+  }, [categories])
 
-//   const { data: tags = [] } = useListTagsQuery()
-//   const tagOptions = useMemo<Option[]>(
-//     () => tags.map((t) => ({ value: t.name, label: t.name })),
-//     [tags]
-//   )
+  const { data: tags = [] } = useListTagsQuery()
+  const tagOptions = useMemo<Option[]>(
+    () => tags.map((t) => ({ value: t.name, label: t.name })),
+    [tags]
+  )
 
   const [createPost, { isLoading: creating }] = useCreatePostMutation()
   const [updatePost, { isLoading: updating }] = useUpdatePostMutation()
@@ -309,6 +308,14 @@ export default function PostEditorPage() {
             onSetStatus={setStatus}
             onDelete={() => setConfirmDelete(true)}
             onRestored={populate}
+            excerpt={excerpt}
+            onExcerptChange={setExcerpt}
+            categoryOptions={categoryOptions}
+            categoryValues={categoryValues}
+            onCategoryValuesChange={setCategoryValues}
+            tagOptions={tagOptions}
+            tagValues={tagValues}
+            onTagValuesChange={setTagValues}
           />
         </div>
       </div>

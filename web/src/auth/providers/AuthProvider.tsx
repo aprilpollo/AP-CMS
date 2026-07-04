@@ -15,6 +15,7 @@ import {
 import { type AuthState, initialAuthState } from "../context/AuthContext";
 import AuthContext from "../context/AuthContext";
 import Loading from "@/shared/Loading";
+import { useMinDisplayDuration } from "@/hooks";
 
 const authProviderLocalStorageKey = "auth-provider";
 
@@ -33,6 +34,7 @@ function AuthProvider(props: AuthenticationProviderProps) {
 
   const currentAuthStatus = useMemo(() => authState?.authStatus, [authState]);
   const [isLoading, setIsLoading] = useState(true);
+  const showLoading = useMinDisplayDuration(isLoading, 3000);
 
   const [providerStatuses, setProviderStatuses] = useState<
     Record<string, string>
@@ -195,9 +197,9 @@ function AuthProvider(props: AuthenticationProviderProps) {
             </Provider>
           );
         },
-        !isLoading ? children(authState) : <Loading />
+        !showLoading ? children(authState) : <Loading />
       ),
-    [providers, isLoading, handleAuthStateChange, children, authState]
+    [providers, showLoading, handleAuthStateChange, children, authState]
   );
 
   return <AuthContext value={contextValue}>{nestedProviders}</AuthContext>;

@@ -286,72 +286,11 @@ body #splash-screen {
   background-color: var(--background);
   color: var(--foreground);
   z-index: 999999;
-  pointer-events: none;
   opacity: 1;
   visibility: visible;
   transition: opacity 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes moon-pulse {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 18px var(--pulse-a))
-      drop-shadow(0 0 40px var(--pulse-b));
-  }
-  50% {
-    filter: drop-shadow(0 0 32px var(--pulse-c))
-      drop-shadow(0 0 64px var(--pulse-d));
-  }
-}
-
-.moon-svg {
-  animation: moon-pulse 3s ease-in-out infinite;
-}
-
-@keyframes loading-dots {
-  0%,
-  100% {
-    opacity: 0.2;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.moon-loading-text {
-  letter-spacing: 0.1em;
-  color: var(--loading-text-color, #606060);
-}
-
-.moon-loading-text::before {
-  content: "Loading";
-}
-
-.moon-loading-text::after {
-  content: "...";
-  animation: loading-dots 1.5s ease-in-out infinite;
-}
-
-.moon-loader {
-  --loading-text-color: #606060;
-  --crescent-shadow: #f0eeea;
-  --bg-glow-opacity: 0.2;
-  --orbit-stroke: #8090a0;
-  --orbit-back-op: 0.2;
-  --orbit-front-op: 0.45;
-  --dot-yellow: #e8b840;
-  --dot-blue: #90a8c8;
-  --star-a: #d0a830;
-  --star-b: #8898b8;
-  --moon-0: #c8c8c0;
-  --moon-1: #909088;
-  --moon-2: #505048;
-  --moon-3: #1e1e18;
-  --pulse-a: rgba(160, 160, 140, 0.3);
-  --pulse-b: rgba(120, 120, 100, 0.12);
-  --pulse-c: rgba(200, 200, 180, 0.5);
-  --pulse-d: rgba(160, 160, 140, 0.25);
-}
 
 /* FullCalendar — re-skin to match shadcn/ui */
 .fc {

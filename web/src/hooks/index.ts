@@ -1,4 +1,5 @@
 export { default as useTimeout } from "./useTimeout"
+export { default as useMinDisplayDuration } from "./useMinDisplayDuration"
 export { default as useLocalStorage } from "./useLocalStorage"
 export { default as usePrevious } from "./usePrevious"
 export { default as usePathname } from "./usePathname"

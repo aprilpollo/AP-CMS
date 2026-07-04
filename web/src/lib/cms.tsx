@@ -32,3 +32,22 @@ export function flattenCategories(
     ...(c.children ? flattenCategories(c.children, depth + 1) : []),
   ])
 }
+
+/** Builds a nested category tree from a flat list keyed by `parent_id`. */
+export function buildCategoryTree(categories: Category[]): Category[] {
+  const byId = new Map<string, Category>(
+    categories.map((c) => [c.id, { ...c, children: [] }])
+  )
+  const roots: Category[] = []
+
+  byId.forEach((c) => {
+    const parent = c.parent_id ? byId.get(c.parent_id) : undefined
+    if (parent) {
+      parent.children!.push(c)
+    } else {
+      roots.push(c)
+    }
+  })
+
+  return roots
+}
