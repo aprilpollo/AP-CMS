@@ -19,6 +19,7 @@ import { DropdownMenuDestructive } from "@/components/post/menu"
 import { format } from "date-fns"
 import type { Author, Category, Post, PostStatus, Tag } from "@/types/cms"
 import { Image } from "lucide-react"
+import Link from "@/shared/Link"
 
 const columns: ColumnDef<Post>[] = [
   {
@@ -49,19 +50,23 @@ const columns: ColumnDef<Post>[] = [
         <div className="relative aspect-video w-16 shrink-0 overflow-hidden rounded-xs">
           {row.original.featured_image_url ? (
             <img
-            className="h-full w-full object-cover"
-            src={row.original.featured_image_url ?? undefined}
-            alt="featured_image"
-          />
-          ):(
+              className="h-full w-full object-cover"
+              src={row.original.featured_image_url ?? undefined}
+              alt="featured_image"
+            />
+          ) : (
             <div className="flex h-full w-full items-center justify-center bg-muted">
               <Image className="size-4 text-muted-foreground" />
             </div>
           )}
-         
         </div>
         <div className="ml-2 flex min-w-0 flex-col">
-          <span className="truncate font-medium">{row.getValue("title")}</span>
+          <Link
+            to={`/posts/${row.original.slug}/edit`}
+            className="truncate font-medium"
+          >
+            {row.getValue("title")}
+          </Link>
           <span className="truncate text-xs text-muted-foreground">
             {row.original.excerpt ? row.original.excerpt : "-"}
           </span>

@@ -146,6 +146,32 @@
   right: -5px;
 }
 
+/* Links inside the editor */
+.tiptap a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Block drag handle (Notion-style gutter grip) */
+.drag-handle {
+  z-index: 20;
+  transition: opacity 0.12s ease;
+}
+.drag-handle[data-dragging="true"] {
+  opacity: 0.6;
+}
+/* Dropcursor shown while dragging a block into place */
+.tiptap .ProseMirror-dropcursor,
+.ProseMirror-dropcursor {
+  border-color: var(--color-primary);
+}
+/* Show where the dragged block will land */
+.tiptap .ProseMirror-selectednode {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+  border-radius: 4px;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "Geist Variable", sans-serif;

@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Toolbar } from "@/components/editor/RichTextEditor"
+import { Toolbar } from "@/components/editor/Toolbar"
+import { Patterns } from "@/components/editor/Patterns"
 import { cn } from "@/lib/utils"
 import type { Editor } from "@tiptap/react"
 import type { Media } from "@/types/cms"
@@ -94,7 +95,7 @@ export function LeftPanel({
           </TabsContent>
 
           <TabsContent value="patterns" className="px-2">
-            Use predefined patterns to speed up your workflow.
+            <Patterns editor={editor} />
           </TabsContent>
 
           <TabsContent value="media" className="space-y-2">
