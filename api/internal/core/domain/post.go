@@ -22,6 +22,19 @@ type Post struct {
 	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
+type PostTitle struct {
+	ID               int64      `json:"id"`
+	Title            string     `json:"title"`
+	Slug             string     `json:"slug"`
+	Excerpt          *string    `json:"excerpt"`
+	FeaturedImageURL *string    `json:"featured_image_url"`
+	Author           *User      `json:"author"`
+	Categories       []Category `json:"categories"`
+	Tags             []Tag      `json:"tags"`
+	Status           string     `json:"status"`
+	PublishedAt      *time.Time `json:"published_at"`
+}
+
 type CreatePostInput struct {
 	Title            string
 	Slug             *string

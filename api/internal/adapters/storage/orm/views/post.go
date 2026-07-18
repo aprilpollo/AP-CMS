@@ -6,11 +6,6 @@ import (
     "apcms/internal/core/domain"
 )
 
-// vwPost flattens a post together with its lookup codes, author, categories, and
-// tags. It exists so the post listing can filter and hydrate without resolving
-// the post_statuses / post_types / content_formats / users / categories / tags
-// joins at query time. Author columns mirror the full domain entity, while the
-// m2m categories and tags arrive as pre-aggregated JSON arrays.
 const vwPost = `CREATE VIEW vw_post AS
 SELECT
     p.id,
@@ -73,9 +68,61 @@ JOIN post_types      pt ON pt.id = p.post_type_id
 JOIN content_formats cf ON cf.id = p.content_format_id
 LEFT JOIN users      au ON au.id = p.author_id`
 
-// VWPost is the read model backed by the vw_post SQL view. Lookup fields are
-// exposed as their string codes and tags arrive as a pre-aggregated JSON array,
-// so the post listing reads a single denormalized row instead of joining.
+const vwPostTitle = `CREATE VIEW vw_post_title AS
+SELECT
+    p.id,
+    p.title,
+    p.slug,
+    p.excerpt,
+    p.featured_image_url,
+    p.status_id,
+    ps.code AS "status_code",
+    p.published_at,
+    CASE
+        WHEN u.id IS NULL THEN NULL
+        ELSE jsonb_build_object(
+            'id', u.id,
+            'display_name', u.display_name,
+            'first_name', u.first_name,
+            'last_name', u.last_name,
+			'email', u.email,
+            'avatar_url', u.avatar_url
+        )
+    END AS "author",
+
+    COALESCE(
+        (
+            SELECT jsonb_agg(
+                       jsonb_build_object(
+                           'id', c.id, 'parent_id', c.parent_id, 'name', c.name,
+                           'slug', c.slug, 'description', c.description, 'sort_order', c.sort_order
+                       )
+                       ORDER BY c.sort_order, c.name
+                   )
+            FROM post_categories pc
+            JOIN categories c ON c.id = pc.category_id
+            WHERE pc.post_id = p.id
+        ),
+        '[]'::jsonb
+    ) AS categories,
+    COALESCE(
+        (
+            SELECT jsonb_agg(
+                       jsonb_build_object('id', t.id, 'name', t.name, 'slug', t.slug)
+                       ORDER BY t.name
+                   )
+            FROM post_tags ptg
+            JOIN tags t ON t.id = ptg.tag_id
+            WHERE ptg.post_id = p.id
+        ),
+        '[]'::jsonb
+    ) AS tags
+FROM posts p
+LEFT JOIN users u ON u.id = p.author_id AND u.deleted_at IS NULL AND u.is_active = true
+LEFT JOIN post_statuses ps ON ps.id = p.status_id
+WHERE p.deleted_at IS NULL 
+`
+
 type VWPost struct {
 	ID               int64      `gorm:"column:id"`
 	Title            string     `gorm:"column:title"`
@@ -113,8 +160,22 @@ type VWPost struct {
 	Tags json.RawMessage `gorm:"column:tags;type:jsonb"`
 }
 
+type VWPostTitle struct {
+	ID               int64           `gorm:"column:id"`
+	Title            string          `gorm:"column:title"`
+	Slug             string          `gorm:"column:slug"`
+	Excerpt          *string         `gorm:"column:excerpt"`
+	FeaturedImageURL *string         `gorm:"column:featured_image_url"`
+	StatusCode       string          `gorm:"column:status_code"`
+	PublishedAt      *time.Time      `gorm:"column:published_at"`
+	Author           json.RawMessage `gorm:"column:author;type:jsonb"`
+	Categories       json.RawMessage `gorm:"column:categories;type:jsonb"`
+	Tags             json.RawMessage `gorm:"column:tags;type:jsonb"`
+}
+
 func (VWPost) TableName() string { return "vw_post" }
 
+func (VWPostTitle) TableName() string { return "vw_post_title" }
 
 func (v *VWPost) ToDomain() *domain.Post {
 	post := &domain.Post{
@@ -157,4 +218,30 @@ func (v *VWPost) ToDomain() *domain.Post {
 	}
 
 	return post
+}
+
+func (v *VWPostTitle) ToDomain() *domain.PostTitle {
+	postTitle := &domain.PostTitle{
+		ID:               v.ID,
+		Title:            v.Title,
+		Slug:             v.Slug,
+		Excerpt:          v.Excerpt,
+		FeaturedImageURL: v.FeaturedImageURL,
+		Status:           v.StatusCode,
+		PublishedAt:      v.PublishedAt,
+	}
+
+	if len(v.Author) > 0 {
+		if err := json.Unmarshal(v.Author, &postTitle.Author); err != nil {
+			return nil
+		}
+	}
+	if err := json.Unmarshal(v.Categories, &postTitle.Categories); err != nil {
+		return nil
+	}
+	if err := json.Unmarshal(v.Tags, &postTitle.Tags); err != nil {
+		return nil
+	}
+
+	return postTitle
 }

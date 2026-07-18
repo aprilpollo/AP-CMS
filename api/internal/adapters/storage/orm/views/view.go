@@ -5,6 +5,7 @@ package views
 // migrate run. Views must reference only tables that AutoMigrate has created.
 var Views = map[string]string{
 	"vw_post":            vwPost,
+	"vw_post_title":      vwPostTitle,
 	"vw_post_revision":   vwPostRevision,
 	"vw_tag":             vwTag,
 	"vw_role_permission": vwRolePermission,

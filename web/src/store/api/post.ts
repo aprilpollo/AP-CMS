@@ -23,7 +23,7 @@ export type UpdatePostBody = {
 }
 
 export function getPosts(query?: string) {
-  return apiFetch(`/api/v1/posts${query ? `?${query}` : ""}`)
+  return apiFetch(`/api/v1/posts/titles${query ? `?${query}` : ""}`)
 }
 
 export function getPostBySlug(slug: string) {

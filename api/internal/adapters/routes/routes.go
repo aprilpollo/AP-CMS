@@ -63,6 +63,7 @@ func RegisterPostsRoutes(app *fiber.App, h *handler.PostHandler, jwtMw fiber.Han
 
 	{
 		posts.Get("", middleware.RequirePermission(authz, "posts.read"), h.Gets)
+		posts.Get("/titles", middleware.RequirePermission(authz, "posts.read"), h.GetsTitles)
 		posts.Get("/:id/revisions", h.ListRevisions)
 		posts.Get("/:slug", middleware.RequirePermission(authz, "posts.read"), h.GetBySlug)
 	}

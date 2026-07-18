@@ -48,6 +48,27 @@ func (r *postRepository) FindAll(ctx context.Context, opts query.QueryOptions) (
 	return posts, total, nil
 }
 
+func (r *postRepository) FindAllTitles(ctx context.Context, opts query.QueryOptions) ([]domain.PostTitle, int64, error) {
+	var rows []views.VWPostTitle
+	var total int64
+
+	countTotal := query.ApplyToGorm(r.db.WithContext(ctx).Model(&views.VWPostTitle{}), query.QueryOptions{Filters: opts.Filters})
+	if err := countTotal.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := query.ApplyToGorm(r.db.WithContext(ctx).Model(&views.VWPostTitle{}), opts).Find(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+
+	titles := make([]domain.PostTitle, len(rows))
+	for i, row := range rows {
+		titles[i] = *row.ToDomain()
+	}
+
+	return titles, total, nil
+}
+
 func (r *postRepository) FindByID(ctx context.Context, id int64) (*domain.Post, error) {
 	return r.findOne(ctx, "id = ?", id)
 }

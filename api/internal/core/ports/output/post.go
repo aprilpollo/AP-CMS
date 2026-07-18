@@ -9,6 +9,7 @@ import (
 
 type PostRepository interface {
 	FindAll(ctx context.Context, opts query.QueryOptions) ([]domain.Post, int64, error)
+	FindAllTitles(ctx context.Context, opts query.QueryOptions) ([]domain.PostTitle, int64, error)
 	FindByID(ctx context.Context, id int64) (*domain.Post, error)
 	FindBySlug(ctx context.Context, slug string) (*domain.Post, error)
 	SlugExists(ctx context.Context, slug, excludeID string) (bool, error)

@@ -106,8 +106,8 @@ export function RightPanel({
             </TabsList>
 
             <TabsContent value="post">
-              <ScrollArea className="h-[calc(100dvh-150px)] px-2">
-                <div className="space-y-2">
+              <ScrollArea className="h-[calc(100dvh-150px)]">
+                <div className="space-y-2 px-2">
                   <div className="space-y-2 pb-3">
                     <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                       Status & Visibility

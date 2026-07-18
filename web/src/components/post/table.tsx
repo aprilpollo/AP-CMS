@@ -6,7 +6,6 @@ import {
 } from "@tanstack/react-table"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { StatusBadge } from "@/lib/cms"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
@@ -19,6 +18,7 @@ import {
 import { DropdownMenuDestructive } from "@/components/post/menu"
 import { format } from "date-fns"
 import type { Author, Category, Post, PostStatus, Tag } from "@/types/cms"
+import { Image } from "lucide-react"
 
 const columns: ColumnDef<Post>[] = [
   {
@@ -40,14 +40,35 @@ const columns: ColumnDef<Post>[] = [
       />
     ),
     id: "select",
-    size: 20,
+    size: 10,
   },
   {
     accessorKey: "title",
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("title")}</div>
+      <div className="flex min-w-0">
+        <div className="relative aspect-video w-16 shrink-0 overflow-hidden rounded-xs">
+          {row.original.featured_image_url ? (
+            <img
+            className="h-full w-full object-cover"
+            src={row.original.featured_image_url ?? undefined}
+            alt="featured_image"
+          />
+          ):(
+            <div className="flex h-full w-full items-center justify-center bg-muted">
+              <Image className="size-4 text-muted-foreground" />
+            </div>
+          )}
+         
+        </div>
+        <div className="ml-2 flex min-w-0 flex-col">
+          <span className="truncate font-medium">{row.getValue("title")}</span>
+          <span className="truncate text-xs text-muted-foreground">
+            {row.original.excerpt ? row.original.excerpt : "-"}
+          </span>
+        </div>
+      </div>
     ),
-    header: "Title",
+    header: "Name",
     size: 320,
   },
   {
@@ -55,24 +76,18 @@ const columns: ColumnDef<Post>[] = [
     header: "Status",
     cell: ({ row }) => {
       const status = row.getValue<PostStatus>("status")
-      return <StatusBadge status={status} />
-    },
-    size: 80,
-  },
-  {
-    accessorKey: "created_at",
-    header: "Date",
-    cell: ({ row }) => {
-      const date = row.getValue<string>("created_at")
-      return date ? (
-        <span className="text-xs font-medium">
-          {format(new Date(date), "PPp")}
-        </span>
-      ) : (
-        <span className="text-muted-foreground">-</span>
+      return (
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate font-medium capitalize">{status}</span>
+          <span className="truncate text-xs text-muted-foreground">
+            {row.original.published_at
+              ? format(new Date(row.original.published_at), "PPp")
+              : "-"}
+          </span>
+        </div>
       )
     },
-    size: 120,
+    size: 80,
   },
 
   {
@@ -81,12 +96,19 @@ const columns: ColumnDef<Post>[] = [
     cell: ({ row }) => {
       const author = row.getValue<Author | null | undefined>("author")
       return (
-        <div className="flex items-center gap-2">
-          <Avatar className="size-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar className="size-8 shrink-0">
             <AvatarImage src={author?.avatar_url ?? undefined} />
             <AvatarFallback>{author?.display_name?.charAt(0)}</AvatarFallback>
           </Avatar>
-          <span className="text-sm font-medium">{author?.display_name}</span>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-sm font-medium">
+              {author?.display_name}
+            </span>
+            <span className="truncate text-xs text-muted-foreground">
+              {author?.email}
+            </span>
+          </div>
         </div>
       )
     },

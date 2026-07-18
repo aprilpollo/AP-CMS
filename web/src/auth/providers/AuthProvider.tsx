@@ -34,7 +34,7 @@ function AuthProvider(props: AuthenticationProviderProps) {
 
   const currentAuthStatus = useMemo(() => authState?.authStatus, [authState]);
   const [isLoading, setIsLoading] = useState(true);
-  const showLoading = useMinDisplayDuration(isLoading, 3000);
+  const showLoading = useMinDisplayDuration(isLoading, 1000);
 
   const [providerStatuses, setProviderStatuses] = useState<
     Record<string, string>

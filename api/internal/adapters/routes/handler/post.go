@@ -44,6 +44,20 @@ func (h *PostHandler) Gets(c *fiber.Ctx) error {
 	return ResOk(c, fiber.StatusOK, posts, &total, &opts)
 }
 
+func (h *PostHandler) GetsTitles(c *fiber.Ctx) error {
+	opts, err := query.Parse("vw_post_title", c.Queries())
+	if err != nil {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+	}
+
+	posts, total, err := h.svc.GetsTitle(c.Context(), opts)
+	if err != nil {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+	}
+	return ResOk(c, fiber.StatusOK, posts, &total, &opts)
+}
+
+
 func (h *PostHandler) GetBySlug(c *fiber.Ctx) error {
 	post, err := h.svc.GetBySlug(c.Context(), c.Params("slug"))
 	if err != nil {

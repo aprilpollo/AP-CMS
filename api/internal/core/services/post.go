@@ -35,6 +35,10 @@ func (s *postService) Gets(ctx context.Context, opts query.QueryOptions) ([]doma
 	return s.posts.FindAll(ctx, opts)
 }
 
+func (s *postService) GetsTitle(ctx context.Context, opts query.QueryOptions) ([]domain.PostTitle, int64, error) {
+	return s.posts.FindAllTitles(ctx, opts)
+}
+
 func (s *postService) GetBySlug(ctx context.Context, slug string) (*domain.Post, error) {
 	post, err := s.posts.FindBySlug(ctx, slug)
 	if err != nil {

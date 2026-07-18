@@ -9,6 +9,7 @@ import (
 
 type PostService interface {
 	Gets(ctx context.Context, opts query.QueryOptions) ([]domain.Post, int64, error)
+	GetsTitle(ctx context.Context, opts query.QueryOptions) ([]domain.PostTitle, int64, error)
 	GetBySlug(ctx context.Context, slug string) (*domain.Post, error)
 	Create(ctx context.Context, in *domain.CreatePostInput) (*domain.Post, error)
 	Update(ctx context.Context, id int64, actor *domain.Actor, in *domain.UpdatePostInput) (*domain.Post, error)
