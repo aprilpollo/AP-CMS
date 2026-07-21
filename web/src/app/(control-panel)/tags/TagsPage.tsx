@@ -10,10 +10,14 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import PageContainer from "@/shared/PageContainer"
-import { Input } from "@/components/ui/input"
+import StatCard from "@/shared/StatCard"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import {
   Empty,
   EmptyDescription,
@@ -24,6 +28,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -31,6 +36,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -42,6 +48,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
   DialogClose,
@@ -51,37 +58,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Spinner } from "@/components/ui/spinner"
 import { apiError } from "@/utils/apiError"
 import { useDeleteTagMutation, useListTagsQuery } from "@/store/api/cmsApi"
 import type { Tag } from "@/types/cms"
 
-type SortKey = "popular" | "name" | "recent"
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof TagsIcon
-  label: string
-  value: number
-}) {
-  return (
-    <Card size="sm">
-      <CardContent className="flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <Icon className="size-4.5" />
-        </div>
-        <div>
-          <div className="text-2xl font-semibold leading-none tracking-tight">
-            {value}
-          </div>
-          <div className="mt-1 text-xs text-muted-foreground">{label}</div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
+type SortKey = "popular" | "name"
 
 function TagsPage() {
   const { data: tags = [], isFetching } = useListTagsQuery()
@@ -122,6 +104,8 @@ function TagsPage() {
     }
   }
 
+  const loading = isFetching && tags.length === 0
+
   return (
     <PageContainer
       title="Tags"
@@ -131,31 +115,44 @@ function TagsPage() {
         <StatCard icon={TagsIcon} label="Total tags" value={stats.total} />
         <StatCard icon={TrendingUp} label="In use" value={stats.used} />
         <StatCard icon={EyeOff} label="Unused" value={stats.unused} />
-        <StatCard icon={Hash} label="Post assignments" value={stats.assignments} />
+        <StatCard
+          icon={Hash}
+          label="Post assignments"
+          value={stats.assignments}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+        <InputGroup className="w-full max-w-xs">
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tags…"
-            className="pl-8"
           />
-        </div>
+        </InputGroup>
         <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
           <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="popular">Most used</SelectItem>
-            <SelectItem value="name">Name (A–Z)</SelectItem>
+            <SelectGroup>
+              <SelectItem value="popular">Most used</SelectItem>
+              <SelectItem value="name">Name (A–Z)</SelectItem>
+            </SelectGroup>
           </SelectContent>
         </Select>
       </div>
 
-      {tags.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col gap-2 rounded-lg border p-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-9 w-full" />
+          ))}
+        </div>
+      ) : tags.length === 0 ? (
         <Empty className="border">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -163,9 +160,7 @@ function TagsPage() {
             </EmptyMedia>
             <EmptyTitle>No tags yet</EmptyTitle>
             <EmptyDescription>
-              {isFetching
-                ? "Loading…"
-                : "Tags appear here once you add them to a post."}
+              Tags appear here once you add them to a post.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -221,13 +216,15 @@ function TagsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onClick={() => setToDelete(t)}
-                            >
-                              <Trash2 className="mr-2 size-4" />
-                              Delete
-                            </DropdownMenuItem>
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onClick={() => setToDelete(t)}
+                              >
+                                <Trash2 data-icon="inline-start" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuGroup>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -245,8 +242,8 @@ function TagsPage() {
           <DialogHeader>
             <DialogTitle>Delete tag?</DialogTitle>
             <DialogDescription>
-              “{toDelete?.name}” will be removed from{" "}
-              {toDelete?.post_count ?? 0} post
+              “{toDelete?.name}” will be removed from {toDelete?.post_count ?? 0}{" "}
+              post
               {(toDelete?.post_count ?? 0) === 1 ? "" : "s"}. This cannot be
               undone.
             </DialogDescription>
@@ -261,6 +258,7 @@ function TagsPage() {
               disabled={deleting}
               className="cursor-pointer"
             >
+              {deleting && <Spinner data-icon="inline-start" />}
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
