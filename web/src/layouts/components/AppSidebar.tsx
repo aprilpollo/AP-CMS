@@ -2,12 +2,21 @@ import { useLocation } from "react-router"
 import {
   GalleryVerticalEnd,
   LayoutDashboard,
-  FileText,
+  FileSearchCorner,
   FolderTree,
+  User,
   type LucideIcon,
+  ChartPie,
+  Megaphone,
 } from "lucide-react"
-import { Sidebar, SidebarContent, SidebarHeader } from "@/components/ui/sidebar"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarFooter,
+} from "@/components/ui/sidebar"
 import { TeamSwitcher } from "./TeamSwitcher"
+import { DropdownMenuSidebar } from "./DropdownSidebar"
 import { NavMenu } from "./NavMenu"
 import useUser from "@/auth/hooks/useUser"
 
@@ -34,7 +43,10 @@ type NavGroup = {
 const navGroups: NavGroup[] = [
   {
     label: "Overview",
-    items: [{ title: "Dashboard", url: "/dashboard", icon: LayoutDashboard }],
+    items: [
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+      { title: "Analytics", url: "/analytics", icon: ChartPie },
+    ],
   },
   {
     label: "Management",
@@ -42,7 +54,7 @@ const navGroups: NavGroup[] = [
       {
         title: "Content",
         url: "#",
-        icon: FileText,
+        icon: FileSearchCorner,
         perm: "posts.edit_own",
         defaultOpen: true,
         items: [
@@ -55,6 +67,24 @@ const navGroups: NavGroup[] = [
           },
           { title: "Tags", url: "/tags", perm: "categories.manage" },
         ],
+      },
+      {
+        title: "Media",
+        url: "/media",
+        icon: GalleryVerticalEnd,
+        perm: "media.manage",
+      },
+      {
+        title: "Users",
+        url: "/users",
+        icon: User,
+        perm: "users.manage",
+      },
+            {
+        title: "Marketing",
+        url: "/marketing",
+        icon: Megaphone,
+        perm: "users.manage",
       },
     ],
   },
@@ -94,6 +124,10 @@ export function AppSidebar() {
           return <NavMenu key={group.label} label={group.label} items={items} />
         })}
       </SidebarContent>
+
+      <SidebarFooter>
+        <DropdownMenuSidebar />
+      </SidebarFooter>
     </Sidebar>
   )
 }
