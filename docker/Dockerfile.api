@@ -21,6 +21,7 @@ RUN apk add --no-cache libwebp
 
 COPY --from=builder /app/server .
 COPY --from=builder /app/migrate .
+COPY --from=builder /app/seed.json .
 EXPOSE 3000
 
 CMD ["./server"]
