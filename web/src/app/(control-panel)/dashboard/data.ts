@@ -41,57 +41,97 @@ export const postsByCategory: ContentRow[] = [
   { category: "Support", posts: 8 },
 ]
 
-export type RecentPost = {
+export type QueueItem = {
   id: string
   title: string
-  status: "Published" | "Draft" | "Scheduled"
+  status: "In review" | "Draft" | "Scheduled"
   author: string
-  views: number
+  /** Scheduled date for scheduled posts, last edit for the rest. */
   date: string
 }
 
-export const recentPosts: RecentPost[] = [
+export const publishingQueue: QueueItem[] = [
   {
     id: "1",
-    title: "Getting started with the new editor",
-    status: "Published",
-    author: "Sarah Chen",
-    views: 4820,
-    date: "2026-08-15",
-  },
-  {
-    id: "2",
-    title: "Release notes — August",
-    status: "Published",
-    author: "Alex Thompson",
-    views: 3105,
-    date: "2026-08-13",
-  },
-  {
-    id: "3",
     title: "Designing accessible tables",
     status: "Scheduled",
     author: "Maria Garcia",
-    views: 0,
-    date: "2026-08-19",
+    date: "2026-08-19 09:00",
+  },
+  {
+    id: "2",
+    title: "What's new in the media library",
+    status: "Scheduled",
+    author: "Sarah Chen",
+    date: "2026-08-21 14:00",
+  },
+  {
+    id: "3",
+    title: "How we migrated our media library",
+    status: "In review",
+    author: "James Wilson",
+    date: "2026-08-14",
   },
   {
     id: "4",
-    title: "How we migrated our media library",
-    status: "Draft",
-    author: "James Wilson",
-    views: 0,
-    date: "2026-08-11",
+    title: "Content modelling for teams",
+    status: "In review",
+    author: "Alex Thompson",
+    date: "2026-08-13",
   },
   {
     id: "5",
-    title: "A field guide to content modelling",
-    status: "Published",
+    title: "Editor shortcuts cheat sheet",
+    status: "Draft",
     author: "Sarah Chen",
-    views: 2264,
-    date: "2026-08-08",
+    date: "2026-08-11",
   },
 ]
+
+export type PendingComment = {
+  id: string
+  author: string
+  excerpt: string
+  post: string
+  timestamp: string
+}
+
+export const pendingComments: PendingComment[] = [
+  {
+    id: "c1",
+    author: "Kanya S.",
+    excerpt: "Does this work with the self-hosted version too?",
+    post: "Getting started with the new editor",
+    timestamp: "2026-08-15 10:12",
+  },
+  {
+    id: "c2",
+    author: "devops_liu",
+    excerpt: "The migration script failed on step 3 for me —",
+    post: "How we migrated our media library",
+    timestamp: "2026-08-14 22:48",
+  },
+  {
+    id: "c3",
+    author: "Anna P.",
+    excerpt: "Great write-up. Any plans for a Figma plugin?",
+    post: "A field guide to content modelling",
+    timestamp: "2026-08-14 16:05",
+  },
+  {
+    id: "c4",
+    author: "guest_2291",
+    excerpt: "buy cheap followers at …",
+    post: "Release notes — August",
+    timestamp: "2026-08-14 03:31",
+  },
+]
+
+export const storage = {
+  usedGb: 12.4,
+  totalGb: 50,
+  files: 1284,
+}
 
 export type ActivityEntry = {
   id: string
