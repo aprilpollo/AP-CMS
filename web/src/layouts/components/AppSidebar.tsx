@@ -1,13 +1,16 @@
 import { useLocation } from "react-router"
 import {
+  type LucideIcon,
   GalleryVerticalEnd,
   LayoutDashboard,
-  FileSearchCorner,
-  FolderTree,
-  User,
-  type LucideIcon,
+  ShieldKeyhole,
   ChartPie,
   Megaphone,
+  UsersRound,
+  StickyNote,
+  Tag,
+  Layers2,
+  Unplug,
 } from "lucide-react"
 import {
   Sidebar,
@@ -42,49 +45,34 @@ type NavGroup = {
 
 const navGroups: NavGroup[] = [
   {
-    label: "Overview",
+    label: "General",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
       { title: "Analytics", url: "/analytics", icon: ChartPie },
+      { title: "Posts", url: "/posts", icon: StickyNote },
+      { title: "Categories", url: "/categories", icon: Layers2 },
+      { title: "Tags", url: "/tags", icon: Tag },
+      { title: "Media", url: "/media", icon: GalleryVerticalEnd },
+      { title: "Marketing", url: "/marketing", icon: Megaphone },
     ],
   },
   {
-    label: "Management",
+    label: "Settings",
     items: [
       {
-        title: "Content",
-        url: "#",
-        icon: FileSearchCorner,
-        perm: "posts.edit_own",
-        defaultOpen: true,
-        items: [
-          { title: "Posts", url: "/posts", perm: "posts.edit_any" },
-          {
-            title: "Categories",
-            url: "/categories",
-            icon: FolderTree,
-            perm: "categories.manage",
-          },
-          { title: "Tags", url: "/tags", perm: "categories.manage" },
-        ],
-      },
-      {
-        title: "Media",
-        url: "/media",
-        icon: GalleryVerticalEnd,
-        perm: "media.manage",
-      },
-      {
-        title: "Users",
+        title: "Users & Roles",
         url: "/users",
-        icon: User,
-        perm: "users.manage",
+        icon: UsersRound,
       },
-            {
-        title: "Marketing",
-        url: "/marketing",
-        icon: Megaphone,
-        perm: "users.manage",
+      {
+        title: "Security",
+        url: "/security",
+        icon: ShieldKeyhole,
+      },
+      {
+        title: "Connections",
+        url: "/connections",
+        icon: Unplug,
       },
     ],
   },

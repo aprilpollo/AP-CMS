@@ -77,3 +77,5 @@ src/
 The domain-specific modules (projects, tasks, kanban board, calendar and their
 APIs/types) were stripped out so this stays a clean foundation. The UI kit,
 auth, layout and settings infrastructure are unchanged.
+
+blocknotejs

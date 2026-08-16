@@ -1,11 +1,9 @@
 import type { RouteItemType } from "@/types"
-import PlaceholderPage from "@/shared/PlaceholderPage"
+import UsersListPage from "@/components/users/Table"
 
 const route: RouteItemType = {
   path: "users",
-  element: (
-    <PlaceholderPage title="Users" description="Manage user accounts." />
-  ),
+  element: <UsersListPage />,
   auth: ["admin"],
   settings: { page: { title: "Users" } },
 }
