@@ -1,5 +1,7 @@
 import { useState } from "react"
+import { useNavigate } from "react-router"
 import PageContainer from "@/shared/PageContainer"
+import Link from "@/shared/Link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -44,6 +46,7 @@ import {
   CircleDotDashed,
   Copy,
   Ellipsis,
+  Eye,
   PencilIcon,
   Plus,
   Search,
@@ -52,60 +55,7 @@ import {
   TrashIcon,
   UserShield,
 } from "lucide-react"
-
-type UserItem = {
-  id: string
-  firstName: string
-  lastName: string
-  avatar: string
-  email: string
-  role: string
-  status: string
-  joinDate: string
-}
-
-const initialItems: UserItem[] = [
-  {
-    id: "1",
-    firstName: "Alex",
-    lastName: "Thompson",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    email: "alex.t@company.com",
-    role: "Admin",
-    status: "Active",
-    joinDate: "2023-01-15",
-  },
-  {
-    id: "2",
-    firstName: "Sarah",
-    lastName: "Chen",
-    avatar: "https://randomuser.me/api/portraits/women/2.jpg",
-    email: "sarah.c@company.com",
-    role: "Editor",
-    status: "Active",
-    joinDate: "2023-04-02",
-  },
-  {
-    id: "3",
-    firstName: "James",
-    lastName: "Wilson",
-    avatar: "https://randomuser.me/api/portraits/men/3.jpg",
-    email: "james.w@company.com",
-    role: "Author",
-    status: "Inactive",
-    joinDate: "2023-08-21",
-  },
-  {
-    id: "4",
-    firstName: "Maria",
-    lastName: "Garcia",
-    avatar: "https://randomuser.me/api/portraits/women/4.jpg",
-    email: "maria.g@company.com",
-    role: "Viewer",
-    status: "Pending",
-    joinDate: "2024-02-10",
-  },
-]
+import { users as initialItems, type UserItem } from "./data"
 
 function UserRowActions({
   user,
@@ -114,6 +64,8 @@ function UserRowActions({
   user: UserItem
   onDelete: (id: string) => void
 }) {
+  const navigate = useNavigate()
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -123,7 +75,11 @@ function UserRowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => navigate(`/users/${user.id}`)}>
+            <Eye />
+            View details
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => navigate(`/users/${user.id}`)}>
             <PencilIcon />
             Edit
           </DropdownMenuItem>
@@ -289,9 +245,12 @@ function UsersListPage() {
                       {item.lastName.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <p className="text-md leading-none font-medium">
+                  <Link
+                    to={`/users/${item.id}`}
+                    className="text-md leading-none font-medium hover:underline"
+                  >
                     {item.firstName} {item.lastName}
-                  </p>
+                  </Link>
                 </TableCell>
                 <TableCell>{item.email}</TableCell>
                 <TableCell>{item.role}</TableCell>
