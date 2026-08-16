@@ -1,12 +1,20 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import PageContainer from "@/shared/PageContainer"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Table,
   TableBody,
-  TableFooter,
   TableCell,
   TableHead,
   TableHeader,
@@ -26,7 +34,6 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -35,25 +42,136 @@ import {
   AtSign,
   CalendarDays,
   CircleDotDashed,
+  Copy,
+  Ellipsis,
+  PencilIcon,
   Plus,
   Search,
+  ShieldUser,
   SlidersHorizontal,
+  TrashIcon,
   UserShield,
 } from "lucide-react"
 
+type UserItem = {
+  id: string
+  firstName: string
+  lastName: string
+  avatar: string
+  email: string
+  role: string
+  status: string
+  joinDate: string
+}
+
+const initialItems: UserItem[] = [
+  {
+    id: "1",
+    firstName: "Alex",
+    lastName: "Thompson",
+    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
+    email: "alex.t@company.com",
+    role: "Admin",
+    status: "Active",
+    joinDate: "2023-01-15",
+  },
+  {
+    id: "2",
+    firstName: "Sarah",
+    lastName: "Chen",
+    avatar: "https://randomuser.me/api/portraits/women/2.jpg",
+    email: "sarah.c@company.com",
+    role: "Editor",
+    status: "Active",
+    joinDate: "2023-04-02",
+  },
+  {
+    id: "3",
+    firstName: "James",
+    lastName: "Wilson",
+    avatar: "https://randomuser.me/api/portraits/men/3.jpg",
+    email: "james.w@company.com",
+    role: "Author",
+    status: "Inactive",
+    joinDate: "2023-08-21",
+  },
+  {
+    id: "4",
+    firstName: "Maria",
+    lastName: "Garcia",
+    avatar: "https://randomuser.me/api/portraits/women/4.jpg",
+    email: "maria.g@company.com",
+    role: "Viewer",
+    status: "Pending",
+    joinDate: "2024-02-10",
+  },
+]
+
+function UserRowActions({
+  user,
+  onDelete,
+}: {
+  user: UserItem
+  onDelete: (id: string) => void
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon-xs" aria-label="Open actions menu">
+          <Ellipsis />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuGroup>
+          <DropdownMenuItem>
+            <PencilIcon />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => navigator.clipboard?.writeText(user.email)}
+          >
+            <Copy />
+            Copy email
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <ShieldUser />
+            Change role
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => onDelete(user.id)}
+          >
+            <TrashIcon />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 function UsersListPage() {
-  const items = [
-    {
-      id: "1",
-      firstName: "Alex",
-      lastName: "Thompson",
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-      email: "alex.t@company.com",
-      role: "Admin",
-      status: "Active",
-      joinDate: "2023-01-15",
-    },
-  ]
+  const [items, setItems] = useState<UserItem[]>(initialItems)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  const allSelected = items.length > 0 && selectedIds.length === items.length
+  const someSelected = selectedIds.length > 0 && !allSelected
+
+  const toggleAll = (checked: boolean) =>
+    setSelectedIds(checked ? items.map((item) => item.id) : [])
+
+  const toggleOne = (id: string, checked: boolean) =>
+    setSelectedIds((prev) =>
+      checked ? [...prev, id] : prev.filter((selected) => selected !== id)
+    )
+
+  const deleteUsers = (ids: string[]) => {
+    setItems((prev) => prev.filter((item) => !ids.includes(item.id)))
+    setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)))
+  }
 
   return (
     <PageContainer
@@ -71,6 +189,22 @@ function UsersListPage() {
           />
         </div>
         <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+            <>
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.length} selected
+              </span>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="rounded-sm"
+                onClick={() => deleteUsers(selectedIds)}
+              >
+                <TrashIcon />
+                Delete
+              </Button>
+            </>
+          )}
           <Button size="sm" variant="ghost" className="rounded-sm">
             <SlidersHorizontal />
             Add Filter
@@ -89,6 +223,16 @@ function UsersListPage() {
         <Table>
           <TableHeader className="bg-transparent">
             <TableRow className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r">
+              <TableHead className="w-10">
+                <Checkbox
+                  aria-label="Select all"
+                  checked={
+                    allSelected ? true : someSelected ? "indeterminate" : false
+                  }
+                  onCheckedChange={(checked) => toggleAll(checked === true)}
+                  className="cursor-pointer"
+                />
+              </TableHead>
               <TableHead>Full Name</TableHead>
 
               <TableHead>
@@ -120,12 +264,23 @@ function UsersListPage() {
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="[&_td:first-child]:rounded-l-lg [&_td:last-child]:rounded-r-lg">
+          <TableBody className="">
             {items.map((item) => (
               <TableRow
                 className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r"
                 key={item.id}
+                data-state={selectedIds.includes(item.id) ? "selected" : undefined}
               >
+                <TableCell className="w-10">
+                  <Checkbox
+                    className="cursor-pointer"
+                    aria-label={`Select ${item.firstName} ${item.lastName}`}
+                    checked={selectedIds.includes(item.id)}
+                    onCheckedChange={(checked) =>
+                      toggleOne(item.id, checked === true)
+                    }
+                  />
+                </TableCell>
                 <TableCell className="flex items-center gap-2">
                   <Avatar className="size-8">
                     <AvatarImage src={item.avatar} alt={item.firstName} />
@@ -142,8 +297,21 @@ function UsersListPage() {
                 <TableCell>{item.role}</TableCell>
                 <TableCell>{item.status}</TableCell>
                 <TableCell>{item.joinDate}</TableCell>
+                <TableCell className="text-right">
+                  <UserRowActions
+                    user={item}
+                    onDelete={(id) => deleteUsers([id])}
+                  />
+                </TableCell>
               </TableRow>
             ))}
+            {items.length === 0 && (
+              <TableRow className="hover:bg-transparent">
+                <TableCell className="h-24 text-center" colSpan={7}>
+                  No users found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
         <footer className="flex items-center justify-between py-2">
