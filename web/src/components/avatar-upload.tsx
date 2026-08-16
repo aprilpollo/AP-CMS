@@ -83,11 +83,12 @@ async function getCroppedImg(
 }
 
 interface AvatarUploadProps {
-  defaultImageUrl?: string; 
+  defaultImageUrl?: string;
   onAction?: (file: File) => void; // Optional callback for when a new avatar is applied
+  onRemove?: () => void; // Optional callback for when the avatar is removed
 }
 
-export default function AvatarUpload({ defaultImageUrl, onAction }: AvatarUploadProps) {
+export default function AvatarUpload({ defaultImageUrl, onAction, onRemove }: AvatarUploadProps) {
   const [
     { files, isDragging },
     {
@@ -180,6 +181,7 @@ export default function AvatarUpload({ defaultImageUrl, onAction }: AvatarUpload
       URL.revokeObjectURL(finalImageUrl);
     }
     setFinalImageUrl(null);
+    onRemove?.();
   };
 
   useEffect(() => {

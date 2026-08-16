@@ -54,8 +54,7 @@ function MainLayout(props: LayoutProps) {
           {showNavebar && <AppHeader showSidebar={showSidebar} />}
           <div
             id="main-scroll"
-            className="@container/main h-[calc(100svh-48px)] overflow-y-auto bg-background scrollbar-none [&::-webkit-scrollbar]:hidden"
-          >
+            className="@container/main relative h-[calc(100vh-48px)] overflow-y-auto bg-background scrollbar-none [&::-webkit-scrollbar]:hidden">
             {children}
             <Outlet />
           </div>

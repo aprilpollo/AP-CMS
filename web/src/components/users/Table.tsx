@@ -110,6 +110,7 @@ function UserRowActions({
 }
 
 function UsersListPage() {
+  const navigate = useNavigate()
   const [items, setItems] = useState<UserItem[]>(initialItems)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
@@ -169,7 +170,12 @@ function UsersListPage() {
             <ArrowDownToLine />
             Export
           </Button>
-          <Button size="sm" variant="outline" className="rounded-sm">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-sm"
+            onClick={() => navigate("/users/new")}
+          >
             <Plus />
             Add User
           </Button>

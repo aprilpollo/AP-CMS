@@ -87,6 +87,34 @@ export function getUserById(id?: string) {
   return users.find((user) => user.id === id)
 }
 
+export type NewUserInput = {
+  firstName: string
+  lastName: string
+  displayName: string
+  email: string
+  role: string
+  status: UserStatus
+  bio: string
+  avatar?: string
+}
+
+export function addUser(input: NewUserInput): UserItem {
+  const nextId = String(
+    users.reduce((max, user) => Math.max(max, Number(user.id) || 0), 0) + 1
+  )
+  const user: UserItem = {
+    ...input,
+    id: nextId,
+    avatar: input.avatar ?? "",
+    joinDate: new Date().toISOString().slice(0, 10),
+    lastActive: "-",
+    posts: 0,
+    comments: 0,
+  }
+  users.push(user)
+  return user
+}
+
 export type UserSession = {
   id: string
   device: string

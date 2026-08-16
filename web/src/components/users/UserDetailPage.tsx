@@ -271,7 +271,7 @@ function UserDetailPage() {
 
 function UserSummaryCard({ user }: { user: UserItem }) {
   return (
-    <Card className="h-fit ring-0">
+    <Card className="h-fit ring-0 bg-background">
       <CardContent className="flex flex-col items-center gap-2 text-center">
         <Avatar className="size-16">
           <AvatarImage src={user.avatar} alt={user.displayName} />
@@ -369,7 +369,7 @@ function ProfileTab({
   }
 
   return (
-    <Card className="ring-0">
+    <Card className="ring-0 bg-background">
       <CardHeader className="px-1">
         <CardTitle>Profile</CardTitle>
         <CardDescription>
@@ -558,7 +558,7 @@ function SecurityTab({
 
   return (
     <div className="space-y-4">
-      <Card className="ring-0">
+      <Card className="ring-0 bg-background">
         <CardHeader className="px-1">
           <CardTitle>Authentication</CardTitle>
           <CardDescription>
@@ -605,7 +605,7 @@ function SecurityTab({
         </CardContent>
       </Card>
 
-      <Card className="ring-0">
+      <Card className="ring-0 bg-background">
         <CardHeader className="px-1">
           <CardTitle>Active sessions</CardTitle>
           <CardDescription>
@@ -647,7 +647,7 @@ function SecurityTab({
         </CardContent>
       </Card>
 
-      <Card className="ring-0">
+      <Card className="ring-0 bg-background">
         <CardHeader className="px-1">
           <CardTitle className="text-destructive">Danger zone</CardTitle>
           <CardDescription>
@@ -675,7 +675,7 @@ function SecurityTab({
 
 function ActivityTab() {
   return (
-    <Card className="ring-0">
+    <Card className="ring-0 bg-background">
       <CardHeader className="px-1">
         <CardTitle>Recent activity</CardTitle>
         <CardDescription>
