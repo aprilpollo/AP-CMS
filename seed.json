@@ -35,10 +35,10 @@
     ]
   },
   "roles": [
-    { "name": "Administrator", "slug": "admin" },
-    { "name": "Editor", "slug": "editor" },
-    { "name": "Author", "slug": "author" },
-    { "name": "Subscriber", "slug": "subscriber" }
+    { "name": "Administrator", "slug": "admin", "color": "#dc2626" },
+    { "name": "Editor", "slug": "editor", "color": "#ea580c" },
+    { "name": "Author", "slug": "author", "color": "#16a34a" },
+    { "name": "Subscriber", "slug": "subscriber", "color": "#2563eb" }
   ],
   "permissions": [
     { "name": "Manage users", "slug": "users.manage" },

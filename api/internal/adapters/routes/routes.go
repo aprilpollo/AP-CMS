@@ -8,6 +8,20 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+func RegisterMastersRoutes(app *fiber.App, h *handler.MasterHandler, jwtMw fiber.Handler, authz output.AuthzRepository) {
+	masters := app.Group("/api/v1/masters", jwtMw)
+
+	{
+		masters.Get("/roles", h.GetsRoles)
+		masters.Get("/post_statuses", h.GetsPostStatuses)
+		masters.Get("/post_types", h.GetsPostTypes)
+		masters.Get("/content_formats", h.GetsContentFormats)
+		masters.Get("/comment_statuses", h.GetsCommentStatuses)
+		masters.Get("/setting_types", h.GetsSettingTypes)
+		masters.Get("/audit_actions", h.GetsAuditActions)
+	}
+}
+
 func RegisterAuthRoutes(app *fiber.App, h *handler.AuthHandler, jwtMw fiber.Handler) {
 	auth := app.Group("/api/v1/auth")
 

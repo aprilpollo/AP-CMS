@@ -4,6 +4,7 @@ import PageContainer from "@/shared/PageContainer"
 import Link from "@/shared/Link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import {
@@ -42,9 +43,12 @@ import {
 import {
   ArrowDownToLine,
   AtSign,
+  BadgeCheck,
+  Ban,
   CalendarDays,
   CircleDotDashed,
   Copy,
+  ClockFading,
   Ellipsis,
   Eye,
   PencilIcon,
@@ -55,6 +59,7 @@ import {
   TrashIcon,
   UserShield,
 } from "lucide-react"
+import {format} from "date-fns"
 import { users as initialItems, type UserItem } from "./data"
 
 function UserRowActions({
@@ -190,7 +195,11 @@ function UsersListPage() {
                   <Checkbox
                     aria-label="Select all"
                     checked={
-                      allSelected ? true : someSelected ? "indeterminate" : false
+                      allSelected
+                        ? true
+                        : someSelected
+                          ? "indeterminate"
+                          : false
                     }
                     onCheckedChange={(checked) => toggleAll(checked === true)}
                     className="cursor-pointer"
@@ -201,28 +210,34 @@ function UsersListPage() {
 
               <TableHead>
                 <div className="flex items-center gap-1">
-                  <AtSign className="size-4 text-muted-foreground" />
+                  <AtSign className="size-3 text-muted-foreground" />
                   Email
                 </div>
               </TableHead>
 
               <TableHead>
                 <div className="flex items-center gap-1">
-                  <UserShield className="size-4 text-muted-foreground" />
+                  <UserShield className="size-3 text-muted-foreground" />
                   Role
                 </div>
               </TableHead>
 
               <TableHead>
                 <div className="flex items-center gap-1">
-                  <CircleDotDashed className="size-4 text-muted-foreground" />
+                  <CircleDotDashed className="size-3 text-muted-foreground" />
                   Status
                 </div>
               </TableHead>
               <TableHead>
                 <div className="flex items-center gap-1">
-                  <CalendarDays className="size-4 text-muted-foreground" />
+                  <CalendarDays className="size-3 text-muted-foreground" />
                   Join Date
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="flex items-center gap-1">
+                  <ClockFading className="size-3 text-muted-foreground" />
+                  Last Login
                 </div>
               </TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -233,7 +248,9 @@ function UsersListPage() {
               <TableRow
                 className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r"
                 key={item.id}
-                data-state={selectedIds.includes(item.id) ? "selected" : undefined}
+                data-state={
+                  selectedIds.includes(item.id) ? "selected" : undefined
+                }
               >
                 <TableCell className="w-10 px-0">
                   <div className="flex items-center justify-center">
@@ -248,26 +265,40 @@ function UsersListPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                 <div className="flex items-center gap-1">
-                   <Avatar className="size-6">
-                    <AvatarImage src={item.avatar} alt={item.firstName} />
-                    <AvatarFallback>
-                      {item.firstName.charAt(0)}
-                      {item.lastName.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Link
-                    to={`/users/${item.id}`}
-                    className="text-xs leading-none font-medium hover:underline"
-                  >
-                    {item.firstName} {item.lastName}
-                  </Link>
-                 </div>
+                  <div className="flex items-center gap-1">
+                    <Avatar className="size-6">
+                      <AvatarImage src={item.avatar} alt={item.firstName} />
+                      <AvatarFallback>
+                        {item.firstName.charAt(0)}
+                        {item.lastName.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <Link
+                      to={`/users/${item.id}`}
+                      className="text-xs leading-none font-medium hover:underline"
+                    >
+                      {item.firstName} {item.lastName}
+                    </Link>
+                  </div>
                 </TableCell>
-                <TableCell>{item.email}</TableCell>
-                <TableCell>{item.role}</TableCell>
-                <TableCell>{item.status}</TableCell>
-                <TableCell>{item.joinDate}</TableCell>
+                <TableCell className="text-xs font-medium">{item.email}</TableCell>
+                <TableCell className="text-xs font-medium">{item.role}</TableCell>
+                <TableCell>
+                  <Badge className=" rounded-sm " variant="secondary">
+                    {item.is_active ? (
+                      <BadgeCheck className="text-blue-700 dark:text-blue-300"/>
+                    ) : (
+                      <Ban className="text-red-700 dark:text-red-300"/>
+                    )}
+                    {item.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-xs font-medium">
+                  {item.created_at ? format(new Date(item.created_at), "MMM dd yyyy, p") : "--/--"}
+                </TableCell>
+                <TableCell className="text-xs font-medium">
+                  {item.last_login_at ? format(new Date(item.last_login_at), "MMM dd yyyy, p") : "--/--"}
+                </TableCell>
                 <TableCell className="text-right">
                   <UserRowActions
                     user={item}
@@ -288,46 +319,58 @@ function UsersListPage() {
         <footer className="flex items-center justify-between py-2">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Rows per page</span>
-            <Select >
-              <SelectTrigger className="w-25 rounded-sm cursor-pointer" size="sm">
+            <Select>
+              <SelectTrigger
+                className="w-25 cursor-pointer rounded-sm"
+                size="sm"
+              >
                 <SelectValue placeholder="10" />
               </SelectTrigger>
               <SelectContent className="w-25">
                 <SelectGroup>
-                  <SelectItem value="10" className="cursor-pointer">10</SelectItem>
-                  <SelectItem value="20" className="cursor-pointer">20</SelectItem>
-                  <SelectItem value="30" className="cursor-pointer">30</SelectItem>
+                  <SelectItem value="10" className="cursor-pointer">
+                    10
+                  </SelectItem>
+                  <SelectItem value="20" className="cursor-pointer">
+                    20
+                  </SelectItem>
+                  <SelectItem value="30" className="cursor-pointer">
+                    30
+                  </SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
           </div>
-            <div>
-          <Pagination aria-label="Pagination">
-            <PaginationContent >
-              <PaginationItem >
-                <PaginationPrevious href="#" className="h-7 rounded-sm" />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" className="h-7">1</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" className="h-7" isActive>
-                  2
-                </PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" className="h-7">3</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationEllipsis className="h-7 rounded-sm"/>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" className="h-7 rounded-sm" />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+          <div>
+            <Pagination aria-label="Pagination">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious href="#" className="h-7 rounded-sm" />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink href="#" className="h-7">
+                    1
+                  </PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink href="#" className="h-7" isActive>
+                    2
+                  </PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink href="#" className="h-7">
+                    3
+                  </PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationEllipsis className="h-7 rounded-sm" />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext href="#" className="h-7 rounded-sm" />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
-
         </footer>
       </div>
     </PageContainer>

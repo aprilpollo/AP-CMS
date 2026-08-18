@@ -51,6 +51,7 @@ func main() {
 	fmt.Println("✔ [INFO] Redis Connection")
 
 	// --- Repositories (output adapters) ---
+	masterRepo := repository.NewMasterRepository(db.GetDB())
 	authzRepo := repository.NewAuthzRepository(db.GetDB())
 	auditRepo := repository.NewAuditRepository(db.GetDB())
 	userRepo := repository.NewUserRepository(db.GetDB())
@@ -76,6 +77,7 @@ func main() {
 	refreshTTL := tokenTTL
 
 	// --- Services (core / use cases) ---
+	masterSvc := services.NewMasterService(masterRepo)
 	authSvc := services.NewAuthService(userRepo, sessionStore, auditRepo, authzRepo, emailSender, fileStorage, jwtManager, refreshTTL, cfg.EmailAPI.ResetURL)
 	userSvc := services.NewUserService(userRepo, emailSender, sessionStore, cfg.EmailAPI.VerifyURL)
 	mediaSvc := services.NewMediaService(mediaRepo, fileStorage)
@@ -84,6 +86,7 @@ func main() {
 	tagSvc := services.NewTagService(tagRepo)
 
 	// --- Handlers (input adapters) ---
+	masterHandler := handler.NewMasterHandler(masterSvc)
 	authHandler := handler.NewAuthHandler(authSvc)
 	userHandler := handler.NewUserHandler(userSvc)
 	mediaHandler := handler.NewMediaHandler(mediaSvc)
@@ -135,6 +138,7 @@ func main() {
 		})
 	})
 
+	routes.RegisterMastersRoutes(app, masterHandler, jwtMiddleware, authzRepo)
 	routes.RegisterAuthRoutes(app, authHandler, jwtMiddleware)
 	routes.RegisterUsersRoutes(app, userHandler, jwtMiddleware, authzRepo)
 	routes.RegisterMediaRoutes(app, mediaHandler, jwtMiddleware, authzRepo)

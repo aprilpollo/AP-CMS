@@ -1,8 +1,14 @@
 package models
 
-// Lookup tables — replace the former Postgres ENUM types. Each holds a stable
-// They use auto-increment integer PKs: small fixed reference sets that are pure
-// FK targets and benefit from compact keys and natural ordering.
+import "time"
+
+type RoleModel struct {
+	ID        int64     `gorm:"primaryKey"`
+	Name      string    `gorm:"not null"`
+	Slug      string    `gorm:"uniqueIndex;not null"`
+	Color     string    `gorm:"default:'#000000'"`
+	CreatedAt time.Time `gorm:"not null;default:now()"`
+}
 
 type PostStatusModel struct {
 	ID    int64  `gorm:"primaryKey"`
@@ -10,15 +16,11 @@ type PostStatusModel struct {
 	Label string `gorm:"not null"`
 }
 
-func (PostStatusModel) TableName() string { return "post_statuses" }
-
 type PostTypeModel struct {
 	ID    int64  `gorm:"primaryKey"`
 	Code  string `gorm:"uniqueIndex;not null"`
 	Label string `gorm:"not null"`
 }
-
-func (PostTypeModel) TableName() string { return "post_types" }
 
 type ContentFormatModel struct {
 	ID    int64  `gorm:"primaryKey"`
@@ -26,15 +28,11 @@ type ContentFormatModel struct {
 	Label string `gorm:"not null"`
 }
 
-func (ContentFormatModel) TableName() string { return "content_formats" }
-
 type CommentStatusModel struct {
 	ID    int64  `gorm:"primaryKey"`
 	Code  string `gorm:"uniqueIndex;not null"`
 	Label string `gorm:"not null"`
 }
-
-func (CommentStatusModel) TableName() string { return "comment_statuses" }
 
 type SettingTypeModel struct {
 	ID    int64  `gorm:"primaryKey"`
@@ -42,12 +40,17 @@ type SettingTypeModel struct {
 	Label string `gorm:"not null"`
 }
 
-func (SettingTypeModel) TableName() string { return "setting_types" }
-
 type AuditActionModel struct {
 	ID    int64  `gorm:"primaryKey"`
 	Code  string `gorm:"uniqueIndex;not null"`
 	Label string `gorm:"not null"`
 }
 
-func (AuditActionModel) TableName() string { return "audit_actions" }
+func (RoleModel) TableName() string          { return "roles" }
+func (PostStatusModel) TableName() string    { return "post_statuses" }
+func (PostTypeModel) TableName() string      { return "post_types" }
+func (ContentFormatModel) TableName() string { return "content_formats" }
+func (CommentStatusModel) TableName() string { return "comment_statuses" }
+func (SettingTypeModel) TableName() string   { return "setting_types" }
+func (AuditActionModel) TableName() string   { return "audit_actions" }
+

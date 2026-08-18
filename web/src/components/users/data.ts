@@ -10,8 +10,10 @@ export type UserItem = {
   role: string
   status: UserStatus
   bio: string
-  joinDate: string
+  created_at: string
+  last_login_at?: string
   lastActive: string
+  is_active: boolean
   posts: number
   comments: number
 }
@@ -31,10 +33,12 @@ export const users: UserItem[] = [
     role: "Admin",
     status: "Active",
     bio: "Platform administrator. Takes care of access control and site configuration.",
-    joinDate: "2023-01-15",
+    created_at: "2026-08-15T11:17:28.443464Z",
     lastActive: "2026-08-15 09:24",
+    last_login_at: "2026-08-15 09:24",
     posts: 42,
     comments: 128,
+    is_active: true,
   },
   {
     id: "2",
@@ -46,10 +50,12 @@ export const users: UserItem[] = [
     role: "Editor",
     status: "Active",
     bio: "Content editor focused on the product blog and release notes.",
-    joinDate: "2023-04-02",
+    created_at: "2023-04-02",
     lastActive: "2026-08-14 17:05",
+    last_login_at: "2026-08-14 17:05",
     posts: 87,
     comments: 63,
+    is_active: true,
   },
   {
     id: "3",
@@ -61,10 +67,12 @@ export const users: UserItem[] = [
     role: "Author",
     status: "Inactive",
     bio: "Writes long-form tutorials. Currently on leave.",
-    joinDate: "2023-08-21",
+    created_at: "2023-08-21",
+    last_login_at: "2026-05-30 11:47",
     lastActive: "2026-05-30 11:47",
     posts: 19,
     comments: 12,
+    is_active: true,
   },
   {
     id: "4",
@@ -76,10 +84,11 @@ export const users: UserItem[] = [
     role: "Subscriber",
     status: "Pending",
     bio: "Invited to review upcoming documentation.",
-    joinDate: "2024-02-10",
+    created_at: "2024-02-10",
     lastActive: "-",
     posts: 0,
     comments: 4,
+    is_active: false,
   },
 ]
 
@@ -96,6 +105,7 @@ export type NewUserInput = {
   status: UserStatus
   bio: string
   avatar?: string
+  is_active: true
 }
 
 export function addUser(input: NewUserInput): UserItem {
@@ -106,7 +116,7 @@ export function addUser(input: NewUserInput): UserItem {
     ...input,
     id: nextId,
     avatar: input.avatar ?? "",
-    joinDate: new Date().toISOString().slice(0, 10),
+    created_at: new Date().toISOString().slice(0, 10),
     lastActive: "-",
     posts: 0,
     comments: 0,
