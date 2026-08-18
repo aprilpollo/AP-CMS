@@ -27,6 +27,9 @@ type UserCreate struct {
 	Bio         *string `json:"bio"`
 	RoleID      int64   `json:"role_id"`
 	Password    string  `json:"password"`
+	// nil keeps the database default (active). Invited accounts send false and
+	// are flipped to active once the user sets their own password.
+	IsActive *bool `json:"is_active"`
 }
 
 type UserUpdate struct {

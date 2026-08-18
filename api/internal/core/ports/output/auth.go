@@ -13,6 +13,14 @@ type SessionStore interface {
 	GetRefreshUserID(ctx context.Context, token string) (string, error)
 	DeleteRefresh(ctx context.Context, token string) error
 
+	// Sessions: one record per refresh token so a user's signed-in devices can
+	// be listed and revoked individually.
+	TrackSession(ctx context.Context, userID, token, userAgent, ip string, ttl time.Duration) error
+	TouchSession(ctx context.Context, userID, token string) error
+	ListSessions(ctx context.Context, userID string) ([]domain.Session, error)
+	DeleteSession(ctx context.Context, userID, sessionID string) error
+	DeleteSessionByToken(ctx context.Context, userID, token string) error
+
 	LoginFailCount(ctx context.Context, ip string) (int64, error)
 	IncrLoginFail(ctx context.Context, ip string, ttl time.Duration) (int64, error)
 	ResetLoginFail(ctx context.Context, ip string) error
@@ -35,4 +43,5 @@ type AuthzRepository interface {
 // AuditRepository persists audit-log entries.
 type AuditRepository interface {
 	Log(ctx context.Context, entry domain.AuditEntry) error
+	ListByUser(ctx context.Context, userID int64, limit int) ([]domain.AuditRecord, error)
 }

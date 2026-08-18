@@ -1,8 +1,10 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"apcms/internal/core/ports/input"
 	"apcms/internal/core/ports/output"
 	"apcms/internal/pkg/query"
+	pkgimage "apcms/internal/pkg/image"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -22,19 +25,37 @@ var (
 	ErrLastAdmin         = errors.New("cannot delete the last administrator")
 	ErrUserNotFound      = errors.New("user not found")
 	ErrInvalidEmailToken = errors.New("invalid or expired email verification token")
+	ErrEmailNotSent       = errors.New("the invitation email could not be sent")
 )
 
-const emailVerifyTTL = time.Hour
+const (
+	emailVerifyTTL  = time.Hour
+	inviteTokenTTL  = 24 * time.Hour
+)
 
 type userService struct {
 	repo      output.UserRepository
 	email     output.EmailSender
 	tokens    output.SessionStore
+	audit     output.AuditRepository
+	fileStore output.FileStorage
 	verifyURL string
+	resetURL  string
 }
 
-func NewUserService(repo output.UserRepository, email output.EmailSender, tokens output.SessionStore, verifyURL string) input.UserService {
-	return &userService{repo: repo, email: email, tokens: tokens, verifyURL: verifyURL}
+func NewUserService(
+	repo output.UserRepository,
+	email output.EmailSender,
+	tokens output.SessionStore,
+	audit output.AuditRepository,
+	fileStore output.FileStorage,
+	verifyURL string,
+	resetURL string,
+) input.UserService {
+	return &userService{
+		repo: repo, email: email, tokens: tokens, audit: audit,
+		fileStore: fileStore, verifyURL: verifyURL, resetURL: resetURL,
+	}
 }
 
 func (s *userService) List(ctx context.Context, opts query.QueryOptions) ([]domain.User, int64, error) {
@@ -144,6 +165,111 @@ func (s *userService) assertNotLastAdmin(ctx context.Context, user *domain.User)
 	}
 	if admins <= 1 {
 		return ErrLastAdmin
+	}
+	return nil
+}
+
+// EmailAvailable powers the inline check on the create form.
+func (s *userService) EmailAvailable(ctx context.Context, email string) (bool, error) {
+	taken, err := s.repo.ExistsByEmail(ctx, strings.TrimSpace(email))
+	if err != nil {
+		return false, err
+	}
+	return !taken, nil
+}
+
+func (s *userService) ListSessions(ctx context.Context, id int64) ([]domain.Session, error) {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+	return s.tokens.ListSessions(ctx, strconv.FormatInt(id, 10))
+}
+
+func (s *userService) RevokeSession(ctx context.Context, id int64, sessionID string) error {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+	return s.tokens.DeleteSession(ctx, strconv.FormatInt(id, 10), sessionID)
+}
+
+func (s *userService) ListActivity(ctx context.Context, id int64, limit int) ([]domain.AuditRecord, error) {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+	return s.audit.ListByUser(ctx, id, limit)
+}
+
+// UploadAvatar stores the image and returns the public URL it was saved at.
+func (s *userService) UploadAvatar(ctx context.Context, id int64, file domain.UploadAvatar) (string, error) {
+	if s.fileStore == nil {
+		return "", ErrStorageUnavailable
+	}
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	if user == nil {
+		return "", ErrUserNotFound
+	}
+
+	webpBytes, err := pkgimage.ConvertToWebP(file.File, pkgimage.DefaultQuality)
+	if err != nil {
+		return "", fmt.Errorf("avatar: convert to webp: %w", err)
+	}
+
+	path := "avatars/" + strconv.FormatInt(id, 10) + ".webp"
+	url, err := s.fileStore.Upload(ctx, path, bytes.NewReader(webpBytes), int64(len(webpBytes)), "image/webp")
+	if err != nil {
+		return "", err
+	}
+
+	if err := s.repo.UpdateAvatar(ctx, id, url); err != nil {
+		return "", err
+	}
+	return url, nil
+}
+
+// SendInvite mails a one-time link the new user can set their password with.
+// Unlike the public forgot-password flow this one reports delivery failures,
+// because an admin needs to know the invitation never went out.
+func (s *userService) SendInvite(ctx context.Context, id int64) error {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	token, err := randomToken()
+	if err != nil {
+		return err
+	}
+	if err := s.tokens.SaveResetToken(ctx, token, strconv.FormatInt(id, 10), inviteTokenTTL); err != nil {
+		return err
+	}
+
+	link := s.resetURL + "?token=" + token
+	body := "<p>Hi " + user.DisplayName + ",</p>" +
+		"<p>An account has been created for you on the CMS.</p>" +
+		"<p>Sign in with <b>" + user.Email + "</b> after choosing a password: " +
+		"<a href=\"" + link + "\">set your password</a>.</p>" +
+		"<p>The link expires in 24 hours.</p>"
+
+	if err := s.email.Send(ctx, []string{user.Email}, "Your CMS account", body); err != nil {
+		return fmt.Errorf("%w: %v", ErrEmailNotSent, err)
 	}
 	return nil
 }

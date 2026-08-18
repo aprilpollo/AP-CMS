@@ -1,6 +1,9 @@
 package domain
 
-import "io"
+import (
+	"io"
+	"time"
+)
 
 type LoginRequest struct {
 	Email    string `json:"email"`
@@ -44,4 +47,25 @@ type UploadAvatar struct {
 	File io.Reader 
 	Size int64
 	ContentType string
+}
+
+// Session is one signed-in device, derived from the refresh tokens in Redis.
+type Session struct {
+	ID         string    `json:"id"`
+	UserAgent  string    `json:"user_agent"`
+	IP         string    `json:"ip"`
+	CreatedAt  time.Time `json:"created_at"`
+	LastSeenAt time.Time `json:"last_seen_at"`
+	Current    bool      `json:"current"`
+}
+
+// AuditRecord is one row of the activity feed.
+type AuditRecord struct {
+	ID         int64     `json:"id"`
+	ActionCode string    `json:"action_code"`
+	ActionName string    `json:"action_name"`
+	EntityType string    `json:"entity_type"`
+	EntityID   *int64    `json:"entity_id"`
+	IP         *string   `json:"ip"`
+	CreatedAt  time.Time `json:"created_at"`
 }

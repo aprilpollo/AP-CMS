@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -63,6 +64,10 @@ func NewAuthService(
 }
 
 func (s *authService) Login(ctx context.Context, email, password, ip string) (*domain.TokenPair, error) {
+	return s.LoginWithAgent(ctx, email, password, ip, "")
+}
+
+func (s *authService) LoginWithAgent(ctx context.Context, email, password, ip, userAgent string) (*domain.TokenPair, error) {
 	if count, _ := s.session.LoginFailCount(ctx, ip); count >= maxLoginFails {
 		return nil, ErrTooManyAttempts
 	}
@@ -88,6 +93,7 @@ func (s *authService) Login(ctx context.Context, email, password, ip string) (*d
 	// Best effort, like the audit entry: a bookkeeping failure must not block
 	// a sign-in that already succeeded.
 	_ = s.users.UpdateLastLogin(ctx, user.ID, time.Now().UTC())
+	_ = s.session.TrackSession(ctx, userIDStr, pair.RefreshToken, userAgent, ip, s.refreshTTL)
 
 	_ = s.audit.Log(ctx, domain.AuditEntry{
 		UserID: &user.ID, ActionCode: "login", EntityType: "user", EntityID: &user.ID, IP: ip,
@@ -108,11 +114,15 @@ func (s *authService) Refresh(ctx context.Context, refreshToken string) (*domain
 	if err != nil {
 		return nil, err
 	}
+	_ = s.session.TouchSession(ctx, userID, refreshToken)
 	return &domain.TokenPair{AccessToken: access, TokenType: "Bearer", ExpiresIn: expiresIn}, nil
 }
 
 func (s *authService) Logout(ctx context.Context, refreshToken string) error {
 	userID, _ := s.session.GetRefreshUserID(ctx, refreshToken)
+	if userID != "" {
+		_ = s.session.DeleteSessionByToken(ctx, userID, refreshToken)
+	}
 	if err := s.session.DeleteRefresh(ctx, refreshToken); err != nil {
 		return err
 	}
@@ -167,8 +177,11 @@ func (s *authService) ForgotPassword(ctx context.Context, email string) error {
 	body := "<p>We received a request to reset your password.</p>" +
 		"<p><a href=\"" + link + "\">Click here to reset it</a>.</p>" +
 		"<p>This link expires in 1 hour and can be used once. If you didn't request this, ignore this email.</p>"
-	// Best-effort: don't reveal delivery failures to the caller.
-	_ = s.email.Send(ctx, []string{user.Email}, "Reset your password", body)
+	// The response stays neutral (never reveal whether the address exists), but
+	// a delivery failure has to show up in the logs.
+	if err := s.email.Send(ctx, []string{user.Email}, "Reset your password", body); err != nil {
+		log.Printf("[ERROR] auth: reset email to user %d failed: %v", user.ID, err)
+	}
 	return nil
 }
 
@@ -190,6 +203,14 @@ func (s *authService) ResetPassword(ctx context.Context, token, newPassword, ip 
 	}
 	if err := s.users.UpdatePassword(ctx, userID, string(hash)); err != nil {
 		return err
+	}
+
+	// Choosing a password is what turns an invited account into a usable one.
+	if uid, convErr := strconv.ParseInt(userID, 10, 64); convErr == nil {
+		active := true
+		if err := s.users.Update(ctx, uid, &domain.UserUpdate{IsActive: &active}); err != nil {
+			log.Printf("[ERROR] auth: activating user %d after reset failed: %v", uid, err)
+		}
 	}
 
 	// One-time use: consume the token.

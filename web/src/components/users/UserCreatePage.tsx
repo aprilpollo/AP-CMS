@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -36,12 +36,15 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Check, Dices, X } from "lucide-react"
 import {
+  useCheckEmailAvailableQuery,
   useCreateUserMutation,
   useListRolesQuery,
-  useUpdateUserMutation,
+  useSendUserInviteMutation,
+  useUploadUserAvatarMutation,
 } from "@/store/api/cmsApi"
+import { useDebounce } from "@/components/ui/multiselect"
 import { apiError } from "@/utils/apiError"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -62,8 +65,12 @@ const schema = z
     email: z.string().email("Enter a valid email address"),
     bio: z.string().max(160, "Bio must be less than 160 characters"),
     role_id: z.string().min(1, "Select a role"),
-    status: z.enum(["Active", "Inactive"]),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z
+      .string()
+      // Same rule as the Go validator (services.validPassword).
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[a-zA-Z]/, "Password must contain a letter")
+      .regex(/[0-9]/, "Password must contain a digit"),
     confirmPassword: z.string(),
     sendInvite: z.boolean(),
   })
@@ -76,19 +83,14 @@ type FormValues = z.infer<typeof schema>
 
 function UserCreatePage() {
   const navigate = useNavigate()
-  const [avatarUrl, setAvatarUrl] = useState("")
-  // The created user keeps the object URL, so it must survive this page.
-  const keepAvatarRef = useRef(false)
-
-  useEffect(() => {
-    return () => {
-      if (avatarUrl && !keepAvatarRef.current) URL.revokeObjectURL(avatarUrl)
-    }
-  }, [avatarUrl])
+  // The cropped file is uploaded after the account exists, since the avatar
+  // endpoint needs a user id.
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
 
   const { data: roles = [], isFetching: rolesLoading } = useListRolesQuery()
   const [createUser, { isLoading: creating }] = useCreateUserMutation()
-  const [updateUser] = useUpdateUserMutation()
+  const [uploadAvatar] = useUploadUserAvatarMutation()
+  const [sendInvite] = useSendUserInviteMutation()
 
   const form = useForm<FormValues>({
     mode: "onChange",
@@ -99,7 +101,6 @@ function UserCreatePage() {
       email: "",
       bio: "",
       role_id: "",
-      status: "Active",
       password: "",
       confirmPassword: "",
       sendInvite: true,
@@ -107,7 +108,39 @@ function UserCreatePage() {
     resolver: zodResolver(schema),
   })
 
+  // Inline e-mail check: only ask the API once the field parses as an address.
+  const emailValue = form.watch("email")
+  const emailProbe = useDebounce(emailValue?.trim() ?? "", 400)
+  const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailProbe)
+  const { data: emailCheck, isFetching: checkingEmail } =
+    useCheckEmailAvailableQuery(emailProbe, { skip: !emailLooksValid })
+  const emailTaken =
+    emailLooksValid && emailCheck?.email === emailProbe && !emailCheck.available
+
+  // Generates a password that satisfies the same rule the API enforces.
+  const generatePassword = () => {
+    const alphabet =
+      "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*"
+    const bytes = new Uint32Array(16)
+    crypto.getRandomValues(bytes)
+    let password = Array.from(bytes, (n) => alphabet[n % alphabet.length]).join(
+      ""
+    )
+    // Guarantee the letter/digit requirement instead of hoping for it.
+    if (!/[a-zA-Z]/.test(password)) password = "a" + password.slice(1)
+    if (!/[0-9]/.test(password)) password = password.slice(0, -1) + "7"
+
+    form.setValue("password", password, { shouldValidate: true })
+    form.setValue("confirmPassword", password, { shouldValidate: true })
+    navigator.clipboard?.writeText(password)
+    toast.success("Password generated and copied to the clipboard")
+  }
+
   const onSubmit = async (values: FormValues) => {
+    if (emailTaken) {
+      toast.error("Pick an email that is not in use yet")
+      return
+    }
     try {
       const user = await createUser({
         email: values.email,
@@ -117,15 +150,30 @@ function UserCreatePage() {
         bio: values.bio || undefined,
         role_id: Number(values.role_id),
         password: values.password,
+        // Invited accounts stay inactive until the user sets their own
+        // password from the email link.
+        is_active: false,
       }).unwrap()
 
-      // The API always creates an active account, so an "Inactive" pick is a
-      // second call on the freshly returned id.
-      if (values.status === "Inactive") {
-        await updateUser({ id: user.id, body: { is_active: false } }).unwrap()
+      // Avatar and invite are follow-ups: the account is already created, so a
+      // failure here is reported without throwing the whole flow away.
+      if (avatarFile) {
+        try {
+          await uploadAvatar({ id: user.id, file: avatarFile }).unwrap()
+        } catch (e) {
+          toast.error(apiError(e, "The profile picture could not be uploaded"))
+        }
       }
 
-      keepAvatarRef.current = true
+      if (values.sendInvite) {
+        try {
+          await sendInvite(user.id).unwrap()
+          toast.success(`Invitation sent to ${user.email}`)
+        } catch (e) {
+          toast.error(apiError(e, "The invitation email could not be sent"))
+        }
+      }
+
       toast.success(`${user.display_name} has been created`)
       navigate(`/users/${user.id}`)
     } catch (e) {
@@ -161,7 +209,7 @@ function UserCreatePage() {
         <Form {...form}>
           <form
             className="max-w-3xl space-y-4"
-            onSubmit={(event) => form.handleSubmit(onSubmit)(event)}
+            onSubmit={form.handleSubmit(onSubmit)}
           >
             <Card className="ring-0 bg-background">
               <CardHeader>
@@ -173,8 +221,8 @@ function UserCreatePage() {
               <CardContent>
                 <div className="mb-4 flex items-center gap-4">
                   <AvatarUpload
-                    onAction={(file) => setAvatarUrl(URL.createObjectURL(file))}
-                    onRemove={() => setAvatarUrl("")}
+                    onAction={(file) => setAvatarFile(file)}
+                    onRemove={() => setAvatarFile(null)}
                   />
                   <div>
                     <p className="font-medium">Profile Picture</p>
@@ -268,9 +316,27 @@ function UserCreatePage() {
                             <Input
                               type="email"
                               placeholder="alex.t@company.com"
+                              aria-invalid={emailTaken || undefined}
                               {...field}
                             />
                           </FormControl>
+                          {emailLooksValid && checkingEmail && (
+                            <FormDescription>
+                              Checking availability …
+                            </FormDescription>
+                          )}
+                          {emailTaken && (
+                            <p className="flex items-center gap-1 text-sm text-destructive">
+                              <X className="size-3.5" />
+                              This email already belongs to another account.
+                            </p>
+                          )}
+                          {emailLooksValid && !checkingEmail && !emailTaken && (
+                            <p className="flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400">
+                              <Check className="size-3.5" />
+                              Email is available.
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -308,37 +374,6 @@ function UserCreatePage() {
                                       value={String(role.id)}
                                     >
                                       {role.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </Field>
-                    <Field>
-                      <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Status</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Select a status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectGroup>
-                                  {["Active", "Inactive"].map((status) => (
-                                    <SelectItem key={status} value={status}>
-                                      {status}
                                     </SelectItem>
                                   ))}
                                 </SelectGroup>
@@ -390,7 +425,19 @@ function UserCreatePage() {
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Password</FormLabel>
+                            <div className="flex items-center justify-between gap-2">
+                              <FormLabel>Password</FormLabel>
+                              <Button
+                                type="button"
+                                size="xs"
+                                variant="ghost"
+                                className="rounded-sm"
+                                onClick={generatePassword}
+                              >
+                                <Dices />
+                                Generate
+                              </Button>
+                            </div>
                             <FormControl>
                               <Input
                                 type="password"
@@ -398,6 +445,9 @@ function UserCreatePage() {
                                 {...field}
                               />
                             </FormControl>
+                            <FormDescription>
+                              At least 8 characters, with a letter and a digit.
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -460,7 +510,7 @@ function UserCreatePage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={creating}>
+              <Button type="submit" disabled={creating || emailTaken}>
               {creating && <Spinner />}
               Create user
             </Button>

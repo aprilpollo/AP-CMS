@@ -64,6 +64,17 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain
 	return row.ToDomain(), nil
 }
 
+// ExistsByEmail is case-insensitive: addresses differing only by case are the
+// same account to a user, and Postgres would otherwise allow both.
+func (r *userRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
+	var total int64
+	err := r.db.WithContext(ctx).
+		Model(&models.UserModel{}).
+		Where("lower(email) = lower(?)", email).
+		Count(&total).Error
+	return total > 0, err
+}
+
 func (r *userRepository) Save(ctx context.Context, user *domain.UserCreate) (*domain.User, error) {
 
 	row := &models.UserModel{

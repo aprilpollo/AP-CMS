@@ -43,6 +43,24 @@ export type UserAccount = {
   updated_at: string
 }
 
+export type UserSession = {
+  id: string
+  user_agent: string
+  ip: string
+  created_at: string
+  last_seen_at: string
+}
+
+export type AuditRecord = {
+  id: number
+  action_code: string
+  action_name: string
+  entity_type: string
+  entity_id?: number | null
+  ip?: string | null
+  created_at: string
+}
+
 export type Category = {
   id: string
   parent_id?: string | null

@@ -48,11 +48,17 @@ func RegisterUsersRoutes(app *fiber.App, h *handler.UserHandler, jwtMw fiber.Han
 
 	{
 		users.Get("", middleware.RequirePermission(authz, "users.manage"), h.Gets)
+		// Registered before "/:id" so the literal path wins the match.
+		users.Get("/email-available", middleware.RequirePermission(authz, "users.manage"), h.EmailAvailable)
 		users.Get("/:id", middleware.RequirePermission(authz, "users.manage"), h.GetByID)
+		users.Get("/:id/sessions", middleware.RequirePermission(authz, "users.manage"), h.Sessions)
+		users.Get("/:id/activity", middleware.RequirePermission(authz, "users.manage"), h.Activity)
 	}
 
 	{
 		users.Post("", middleware.RequirePermission(authz, "users.manage"), h.Create)
+		users.Post("/:id/avatar", middleware.RequirePermission(authz, "users.manage"), h.UploadAvatar)
+		users.Post("/:id/invite", middleware.RequirePermission(authz, "users.manage"), h.SendInvite)
 	}
 
 	{
@@ -62,6 +68,7 @@ func RegisterUsersRoutes(app *fiber.App, h *handler.UserHandler, jwtMw fiber.Han
 
 	{
 		users.Delete("/:id", middleware.RequirePermission(authz, "users.manage"), h.Delete)
+		users.Delete("/:id/sessions/:sid", middleware.RequirePermission(authz, "users.manage"), h.RevokeSession)
 	}
 }
 

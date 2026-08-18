@@ -11,10 +11,12 @@ import type {
   Tag,
   UserAccount,
   UserRole,
+  UserSession,
+  AuditRecord,
 } from "@/types/cms"
 
 const api = apiService.enhanceEndpoints({
-  addTagTypes: ["Post", "Category", "Tag", "Revision", "Media", "User", "Role"],
+  addTagTypes: ["Post", "Category", "Tag", "Revision", "Media", "User", "Role", "Session", "Activity"],
 })
 
 export type PostListParams = {
@@ -92,6 +94,7 @@ export type CreateUserBody = {
   bio?: string
   role_id: number
   password: string
+  is_active?: boolean
 }
 
 export type UpdateUserBody = {
@@ -300,6 +303,71 @@ export const cmsApi = api.injectEndpoints({
       invalidatesTags: [{ type: "User", id: "LIST" }],
     }),
 
+    checkEmailAvailable: build.query<
+      { email: string; available: boolean },
+      string
+    >({
+      query: (email) => ({
+        url: "/api/v1/users/email-available",
+        params: { email },
+      }),
+      transformResponse: (
+        res: ApiEnvelope<{ email: string; available: boolean }>
+      ) => res.payload,
+    }),
+
+    listUserSessions: build.query<UserSession[], number | string>({
+      query: (id) => `/api/v1/users/${id}/sessions`,
+      transformResponse: (res: ApiEnvelope<UserSession[]>) => res.payload ?? [],
+      providesTags: (_r, _e, id) => [{ type: "Session", id }],
+    }),
+
+    revokeUserSession: build.mutation<
+      { message: string },
+      { id: number | string; sessionId: string }
+    >({
+      query: ({ id, sessionId }) => ({
+        url: `/api/v1/users/${id}/sessions/${sessionId}`,
+        method: "DELETE",
+      }),
+      transformResponse: (res: ApiEnvelope<{ message: string }>) => res.payload,
+      invalidatesTags: (_r, _e, arg) => [{ type: "Session", id: arg.id }],
+    }),
+
+    listUserActivity: build.query<
+      AuditRecord[],
+      { id: number | string; limit?: number }
+    >({
+      query: ({ id, limit = 20 }) => ({
+        url: `/api/v1/users/${id}/activity`,
+        params: { _limit: limit },
+      }),
+      transformResponse: (res: ApiEnvelope<AuditRecord[]>) => res.payload ?? [],
+      providesTags: (_r, _e, arg) => [{ type: "Activity", id: arg.id }],
+    }),
+
+    uploadUserAvatar: build.mutation<
+      { avatar_url: string },
+      { id: number | string; file: File }
+    >({
+      query: ({ id, file }) => {
+        const form = new FormData()
+        form.append("file", file)
+        return { url: `/api/v1/users/${id}/avatar`, method: "POST", body: form }
+      },
+      transformResponse: (res: ApiEnvelope<{ avatar_url: string }>) =>
+        res.payload,
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "User", id: arg.id },
+        { type: "User", id: "LIST" },
+      ],
+    }),
+
+    sendUserInvite: build.mutation<{ message: string }, number | string>({
+      query: (id) => ({ url: `/api/v1/users/${id}/invite`, method: "POST" }),
+      transformResponse: (res: ApiEnvelope<{ message: string }>) => res.payload,
+    }),
+
     listRoles: build.query<UserRole[], void>({
       query: () => ({ url: "/api/v1/masters/roles", params: { _limit: 100 } }),
       transformResponse: (res: ApiEnvelope<UserRole[]>) => res.payload ?? [],
@@ -361,6 +429,12 @@ export const {
   useDeleteUserMutation,
   useSetUserPasswordMutation,
   useListRolesQuery,
+  useCheckEmailAvailableQuery,
+  useListUserSessionsQuery,
+  useRevokeUserSessionMutation,
+  useListUserActivityQuery,
+  useUploadUserAvatarMutation,
+  useSendUserInviteMutation,
   useListTagsQuery,
   useDeleteTagMutation,
   useListMediaQuery,

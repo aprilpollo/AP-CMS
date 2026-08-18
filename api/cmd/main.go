@@ -79,7 +79,7 @@ func main() {
 	// --- Services (core / use cases) ---
 	masterSvc := services.NewMasterService(masterRepo)
 	authSvc := services.NewAuthService(userRepo, sessionStore, auditRepo, authzRepo, emailSender, fileStorage, jwtManager, refreshTTL, cfg.EmailAPI.ResetURL)
-	userSvc := services.NewUserService(userRepo, emailSender, sessionStore, cfg.EmailAPI.VerifyURL)
+	userSvc := services.NewUserService(userRepo, emailSender, sessionStore, auditRepo, fileStorage, cfg.EmailAPI.VerifyURL, cfg.EmailAPI.ResetURL)
 	mediaSvc := services.NewMediaService(mediaRepo, fileStorage)
 	postSvc := services.NewPostService(postRepo, tagRepo)
 	categoriesSvc := services.NewCategoriesService(categoriesRepo)

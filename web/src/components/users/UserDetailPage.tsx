@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
 import PageContainer from "@/shared/PageContainer"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -58,7 +57,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -70,6 +68,7 @@ import {
   Ellipsis,
   KeyRound,
   LogOut,
+  Mail,
   MessageSquare,
   Monitor,
   ScrollText,
@@ -86,12 +85,17 @@ import {
   useDeleteUserMutation,
   useGetUserQuery,
   useListRolesQuery,
+  useListUserActivityQuery,
+  useListUserSessionsQuery,
+  useRevokeUserSessionMutation,
+  useSendUserInviteMutation,
   useSetUserPasswordMutation,
   useUpdateUserMutation,
+  useUploadUserAvatarMutation,
 } from "@/store/api/cmsApi"
 import { apiError } from "@/utils/apiError"
 import type { UserAccount } from "@/types/cms"
-import { userActivities, userSessions } from "./data"
+import AvatarUpload from "@/components/avatar-upload"
 
 function fullName(user: UserAccount) {
   const name = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()
@@ -274,7 +278,7 @@ function UserDetailPage() {
           </TabsContent>
 
           <TabsContent value="activity">
-            <ActivityTab />
+            <ActivityTab user={user} />
           </TabsContent>
         </Tabs>
       </div>
@@ -317,16 +321,27 @@ function UserDetailPage() {
 }
 
 function UserSummaryCard({ user }: { user: UserAccount }) {
+  const [uploadAvatar, { isLoading: uploading }] = useUploadUserAvatarMutation()
+
+  const changeAvatar = async (file: File) => {
+    try {
+      await uploadAvatar({ id: user.id, file }).unwrap()
+      toast.success("Profile picture updated")
+    } catch (e) {
+      toast.error(apiError(e, "The picture could not be uploaded"))
+    }
+  }
+
   return (
     <Card className="h-fit ring-0 bg-background">
       <CardContent className="flex flex-col items-center gap-2 text-center">
-        <Avatar className="size-16">
-          <AvatarImage src={user.avatar_url ?? undefined} alt={fullName(user)} />
-          <AvatarFallback>
-            {(user.first_name?.charAt(0) ?? "") +
-              (user.last_name?.charAt(0) ?? "") || "?"}
-          </AvatarFallback>
-        </Avatar>
+        <AvatarUpload
+          defaultImageUrl={user.avatar_url ?? undefined}
+          onAction={changeAvatar}
+        />
+        {uploading && (
+          <span className="text-xs text-muted-foreground">Uploading …</span>
+        )}
         <div>
           <p className="font-medium">{user.display_name || fullName(user)}</p>
           <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -624,10 +639,31 @@ function SecurityTab({
   onDelete: () => void
   onToggleActive: (isActive: boolean) => void
 }) {
-  const [twoFactor, setTwoFactor] = useState(false)
   const [newPassword, setNewPassword] = useState("")
   const [setUserPassword, { isLoading: savingPassword }] =
     useSetUserPasswordMutation()
+  const { data: sessions = [], isLoading: sessionsLoading } =
+    useListUserSessionsQuery(user.id)
+  const [revokeSession, { isLoading: revoking }] = useRevokeUserSessionMutation()
+  const [sendInvite, { isLoading: sendingInvite }] = useSendUserInviteMutation()
+
+  const revoke = async (sessionId: string) => {
+    try {
+      await revokeSession({ id: user.id, sessionId }).unwrap()
+      toast.success("Session revoked")
+    } catch (e) {
+      toast.error(apiError(e, "Could not revoke the session"))
+    }
+  }
+
+  const invite = async () => {
+    try {
+      await sendInvite(user.id).unwrap()
+      toast.success(`Password link sent to ${user.email}`)
+    } catch (e) {
+      toast.error(apiError(e, "The email could not be sent"))
+    }
+  }
 
   const submitPassword = async () => {
     try {
@@ -674,29 +710,18 @@ function SecurityTab({
                 {savingPassword ? <Spinner /> : <KeyRound />}
                 Update
               </Button>
+              <Button
+                variant="ghost"
+                disabled={sendingInvite}
+                onClick={invite}
+                title="Email a one-time link so the user can set it themselves"
+              >
+                {sendingInvite ? <Spinner /> : <Mail />}
+                Email link
+              </Button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-medium">Two-factor authentication</p>
-              <p className="text-sm text-muted-foreground">
-                Require a verification code at sign in.
-              </p>
-            </div>
-            <Switch
-              checked={twoFactor}
-              onCheckedChange={(checked) => {
-                setTwoFactor(checked)
-                toast.success(
-                  checked
-                    ? "Two-factor authentication enabled"
-                    : "Two-factor authentication disabled"
-                )
-              }}
-              aria-label="Toggle two-factor authentication"
-            />
-          </div>
         </CardContent>
       </Card>
 
@@ -708,31 +733,38 @@ function SecurityTab({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-1">
-          {userSessions.map((session) => (
+          {sessionsLoading && <Skeleton className="h-12 w-full" />}
+
+          {!sessionsLoading && sessions.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No active sessions. The user is signed out everywhere.
+            </p>
+          )}
+
+          {sessions.map((session) => (
             <div
               key={session.id}
               className="flex items-center justify-between gap-4"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                   <Monitor className="size-4.5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 font-medium">
-                    {session.device}
-                    {session.current && (
-                      <Badge variant="secondary">Current</Badge>
-                    )}
+                  <p className="truncate font-medium">
+                    {session.user_agent || "Unknown device"}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {session.location} · {session.lastSeen}
+                    {session.ip || "unknown ip"} · last seen{" "}
+                    {formatDate(session.last_seen_at)}
                   </p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => toast.success("Session revoked")}
+                disabled={revoking}
+                onClick={() => revoke(session.id)}
               >
                 <LogOut />
                 Revoke
@@ -768,30 +800,55 @@ function SecurityTab({
   )
 }
 
-function ActivityTab() {
+function ActivityTab({ user }: { user: UserAccount }) {
+  const { data: records = [], isLoading } = useListUserActivityQuery({
+    id: user.id,
+    limit: 30,
+  })
+
   return (
     <Card className="ring-0 bg-background">
       <CardHeader className="px-1">
         <CardTitle>Recent activity</CardTitle>
         <CardDescription>
-          The latest actions recorded for this account.
+          Audit entries recorded for this account, newest first.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-1">
-        <ol className="relative space-y-4 border-l pl-4">
-          {userActivities.map((activity) => (
-            <li key={activity.id} className="relative">
-              <span className="absolute top-1.5 -left-5.25 size-2 rounded-full bg-border ring-4 ring-background" />
-              <p className="font-medium">{activity.title}</p>
-              <p className="text-sm text-muted-foreground">
-                {activity.description}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {activity.timestamp}
-              </p>
-            </li>
-          ))}
-        </ol>
+        {isLoading && (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-10 w-full" />
+            ))}
+          </div>
+        )}
+
+        {!isLoading && records.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Nothing recorded yet. Sign-ins and content changes show up here.
+          </p>
+        )}
+
+        {records.length > 0 && (
+          <ol className="relative space-y-4 border-l pl-4">
+            {records.map((record) => (
+              <li key={record.id} className="relative">
+                <span className="absolute top-1.5 -left-5.25 size-2 rounded-full bg-border ring-4 ring-background" />
+                <p className="font-medium">
+                  {record.action_name || record.action_code}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {record.entity_type}
+                  {record.entity_id ? ` #${record.entity_id}` : ""}
+                  {record.ip ? ` · ${record.ip}` : ""}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {formatDate(record.created_at)}
+                </p>
+              </li>
+            ))}
+          </ol>
+        )}
       </CardContent>
     </Card>
   )

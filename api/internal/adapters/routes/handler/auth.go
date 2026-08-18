@@ -27,7 +27,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", "email and password are required")
 	}
 
-	pair, err := h.svc.Login(c.Context(), req.Email, req.Password, c.IP())
+	pair, err := h.svc.LoginWithAgent(c.Context(), req.Email, req.Password, c.IP(), c.Get("User-Agent"))
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrInvalidCredentials):
