@@ -83,13 +83,14 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>
 
-function UserCreatePage() {
+function PreviewCreatePage() {
   const navigate = useNavigate()
   // The cropped file is uploaded after the account exists, since the avatar
   // endpoint needs a user id.
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
 
-  const { data: roles = [], isFetching: rolesLoading } = useListRolesQuery()
+  const roles: {id:number;name:string}[] = [{id:1,name:"Admin"}]
+  const rolesLoading = false
   const [createUser, { isLoading: creating }] = useCreateUserMutation()
   const [uploadAvatar] = useUploadUserAvatarMutation()
   const [sendInvite] = useSendUserInviteMutation()
@@ -114,8 +115,8 @@ function UserCreatePage() {
   const emailValue = form.watch("email")
   const emailProbe = useDebounce(emailValue?.trim() ?? "", 400)
   const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailProbe)
-  const { data: emailCheck, isFetching: checkingEmail } =
-    useCheckEmailAvailableQuery(emailProbe, { skip: !emailLooksValid })
+  const emailCheck = undefined as undefined | {email:string;available:boolean}
+  const checkingEmail = false
   const emailTaken =
     emailLooksValid && emailCheck?.email === emailProbe && !emailCheck.available
 
@@ -538,4 +539,4 @@ function UserCreatePage() {
   )
 }
 
-export default UserCreatePage
+export default PreviewCreatePage
