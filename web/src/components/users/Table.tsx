@@ -185,15 +185,17 @@ function UsersListPage() {
         <Table>
           <TableHeader className="bg-transparent">
             <TableRow className="*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r">
-              <TableHead className="w-10">
-                <Checkbox
-                  aria-label="Select all"
-                  checked={
-                    allSelected ? true : someSelected ? "indeterminate" : false
-                  }
-                  onCheckedChange={(checked) => toggleAll(checked === true)}
-                  className="cursor-pointer"
-                />
+              <TableHead className="w-10 px-0">
+                <div className="flex items-center justify-center">
+                  <Checkbox
+                    aria-label="Select all"
+                    checked={
+                      allSelected ? true : someSelected ? "indeterminate" : false
+                    }
+                    onCheckedChange={(checked) => toggleAll(checked === true)}
+                    className="cursor-pointer"
+                  />
+                </div>
               </TableHead>
               <TableHead>Full Name</TableHead>
 
@@ -233,18 +235,21 @@ function UsersListPage() {
                 key={item.id}
                 data-state={selectedIds.includes(item.id) ? "selected" : undefined}
               >
-                <TableCell className="w-10">
-                  <Checkbox
-                    className="cursor-pointer"
-                    aria-label={`Select ${item.firstName} ${item.lastName}`}
-                    checked={selectedIds.includes(item.id)}
-                    onCheckedChange={(checked) =>
-                      toggleOne(item.id, checked === true)
-                    }
-                  />
+                <TableCell className="w-10 px-0">
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      className="cursor-pointer"
+                      aria-label={`Select ${item.firstName} ${item.lastName}`}
+                      checked={selectedIds.includes(item.id)}
+                      onCheckedChange={(checked) =>
+                        toggleOne(item.id, checked === true)
+                      }
+                    />
+                  </div>
                 </TableCell>
-                <TableCell className="flex items-center gap-2">
-                  <Avatar className="size-8">
+                <TableCell>
+                 <div className="flex items-center gap-1">
+                   <Avatar className="size-6">
                     <AvatarImage src={item.avatar} alt={item.firstName} />
                     <AvatarFallback>
                       {item.firstName.charAt(0)}
@@ -253,10 +258,11 @@ function UsersListPage() {
                   </Avatar>
                   <Link
                     to={`/users/${item.id}`}
-                    className="text-md leading-none font-medium hover:underline"
+                    className="text-xs leading-none font-medium hover:underline"
                   >
                     {item.firstName} {item.lastName}
                   </Link>
+                 </div>
                 </TableCell>
                 <TableCell>{item.email}</TableCell>
                 <TableCell>{item.role}</TableCell>
