@@ -37,7 +37,13 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft } from "lucide-react"
-import { addUser, userRoles, userStatuses, type UserStatus } from "./data"
+import {
+  useCreateUserMutation,
+  useListRolesQuery,
+  useUpdateUserMutation,
+} from "@/store/api/cmsApi"
+import { apiError } from "@/utils/apiError"
+import { Spinner } from "@/components/ui/spinner"
 
 const schema = z
   .object({
@@ -55,8 +61,8 @@ const schema = z
       .max(50, "Display name must be less than 50 characters"),
     email: z.string().email("Enter a valid email address"),
     bio: z.string().max(160, "Bio must be less than 160 characters"),
-    role: z.string().min(1, "Select a role"),
-    status: z.enum(["Active", "Inactive", "Pending"]),
+    role_id: z.string().min(1, "Select a role"),
+    status: z.enum(["Active", "Inactive"]),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
     sendInvite: z.boolean(),
@@ -80,6 +86,10 @@ function UserCreatePage() {
     }
   }, [avatarUrl])
 
+  const { data: roles = [], isFetching: rolesLoading } = useListRolesQuery()
+  const [createUser, { isLoading: creating }] = useCreateUserMutation()
+  const [updateUser] = useUpdateUserMutation()
+
   const form = useForm<FormValues>({
     mode: "onChange",
     defaultValues: {
@@ -88,7 +98,7 @@ function UserCreatePage() {
       displayName: "",
       email: "",
       bio: "",
-      role: "Subscriber",
+      role_id: "",
       status: "Active",
       password: "",
       confirmPassword: "",
@@ -97,24 +107,30 @@ function UserCreatePage() {
     resolver: zodResolver(schema),
   })
 
-  const onSubmit = (values: FormValues) => {
-    keepAvatarRef.current = true
-    const user = addUser({
-      firstName: values.firstName,
-      lastName: values.lastName,
-      displayName: values.displayName,
-      email: values.email,
-      role: values.role,
-      status: values.status as UserStatus,
-      bio: values.bio,
-      avatar: avatarUrl,
-    })
-    toast.success(
-      values.sendInvite
-        ? `User created — invitation sent to ${user.email}`
-        : "User created successfully"
-    )
-    navigate("/users")
+  const onSubmit = async (values: FormValues) => {
+    try {
+      const user = await createUser({
+        email: values.email,
+        display_name: values.displayName,
+        first_name: values.firstName,
+        last_name: values.lastName,
+        bio: values.bio || undefined,
+        role_id: Number(values.role_id),
+        password: values.password,
+      }).unwrap()
+
+      // The API always creates an active account, so an "Inactive" pick is a
+      // second call on the freshly returned id.
+      if (values.status === "Inactive") {
+        await updateUser({ id: user.id, body: { is_active: false } }).unwrap()
+      }
+
+      keepAvatarRef.current = true
+      toast.success(`${user.display_name} has been created`)
+      navigate(`/users/${user.id}`)
+    } catch (e) {
+      toast.error(apiError(e, "Could not create the user"))
+    }
   }
 
   // Suggest a display name while the user has not typed one themselves.
@@ -145,7 +161,7 @@ function UserCreatePage() {
         <Form {...form}>
           <form
             className="max-w-3xl space-y-4"
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={(event) => form.handleSubmit(onSubmit)(event)}
           >
             <Card className="ring-0 bg-background">
               <CardHeader>
@@ -265,7 +281,7 @@ function UserCreatePage() {
                     <Field>
                       <FormField
                         control={form.control}
-                        name="role"
+                        name="role_id"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Role</FormLabel>
@@ -275,14 +291,23 @@ function UserCreatePage() {
                             >
                               <FormControl>
                                 <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Select a role" />
+                                  <SelectValue
+                                    placeholder={
+                                      rolesLoading
+                                        ? "Loading roles …"
+                                        : "Select a role"
+                                    }
+                                  />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                 <SelectGroup>
-                                  {userRoles.map((role) => (
-                                    <SelectItem key={role} value={role}>
-                                      {role}
+                                  {roles.map((role) => (
+                                    <SelectItem
+                                      key={role.id}
+                                      value={String(role.id)}
+                                    >
+                                      {role.name}
                                     </SelectItem>
                                   ))}
                                 </SelectGroup>
@@ -311,7 +336,7 @@ function UserCreatePage() {
                               </FormControl>
                               <SelectContent>
                                 <SelectGroup>
-                                  {userStatuses.map((status) => (
+                                  {["Active", "Inactive"].map((status) => (
                                     <SelectItem key={status} value={status}>
                                       {status}
                                     </SelectItem>
@@ -435,7 +460,10 @@ function UserCreatePage() {
               >
                 Cancel
               </Button>
-              <Button type="submit">Create user</Button>
+              <Button type="submit" disabled={creating}>
+              {creating && <Spinner />}
+              Create user
+            </Button>
             </div>
           </form>
         </Form>

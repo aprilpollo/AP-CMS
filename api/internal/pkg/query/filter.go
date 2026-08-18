@@ -13,7 +13,7 @@ var suffixToSQL = map[string]string{
 	"gte":      ">=",
 	"lt":       "<",
 	"lte":      "<=",
-	"contains": "LIKE",
+	"contains": "ILIKE", // Postgres: case-insensitive LIKE
 	"in":       "IN",
 	"nin":      "NOT IN",
 	"null":     "IS NULL",
@@ -81,7 +81,7 @@ func buildFilter(field, suffix, raw string) *Filter {
 		return &Filter{Field: field, Operator: "IS NOT NULL", Value: nil}
 
 	case "contains":
-		return &Filter{Field: field, Operator: "LIKE", Value: "%" + raw + "%"}
+		return &Filter{Field: field, Operator: "ILIKE", Value: "%" + raw + "%"}
 
 	case "in":
 		vals := splitCSV(raw)

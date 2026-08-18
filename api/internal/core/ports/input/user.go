@@ -11,6 +11,8 @@ import (
 type UserService interface {
 	List(ctx context.Context, opts query.QueryOptions) ([]domain.User, int64, error)
 	GetByID(ctx context.Context, id int64) (*domain.User, error)
-	Create(ctx context.Context, in *domain.UserCreate) error
+	Create(ctx context.Context, in *domain.UserCreate) (*domain.User, error)
 	Update(ctx context.Context, id int64, in *domain.UserUpdate) error
+	Delete(ctx context.Context, id int64) error
+	SetPassword(ctx context.Context, id int64, password string) error
 }

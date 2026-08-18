@@ -57,6 +57,11 @@ func RegisterUsersRoutes(app *fiber.App, h *handler.UserHandler, jwtMw fiber.Han
 
 	{
 		users.Put("/:id", middleware.RequirePermission(authz, "users.manage"), h.Update)
+		users.Put("/:id/password", middleware.RequirePermission(authz, "users.manage"), h.SetPassword)
+	}
+
+	{
+		users.Delete("/:id", middleware.RequirePermission(authz, "users.manage"), h.Delete)
 	}
 }
 

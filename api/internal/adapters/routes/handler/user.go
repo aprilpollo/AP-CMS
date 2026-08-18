@@ -1,8 +1,12 @@
 package handler
 
 import (
+	"errors"
+	"strconv"
+
 	"apcms/internal/core/domain"
 	"apcms/internal/core/ports/input"
+	"apcms/internal/core/services"
 	"apcms/internal/pkg/query"
 
 	"github.com/gofiber/fiber/v2"
@@ -51,11 +55,18 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
 	}
 
-	err := h.svc.Create(c.Context(), &req)
+	user, err := h.svc.Create(c.Context(), &req)
 	if err != nil {
-		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+		switch {
+		case errors.Is(err, services.ErrEmailTaken):
+			return ResError(c, fiber.StatusConflict, "CONFLICT", err.Error())
+		case errors.Is(err, services.ErrWeakPassword):
+			return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+		default:
+			return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+		}
 	}
-	return ResOk(c, fiber.StatusCreated, fiber.Map{"message": "user created"}, nil, nil)
+	return ResOk(c, fiber.StatusCreated, user, nil, nil)
 }
 
 func (h *UserHandler) Update(c *fiber.Ctx) error {
@@ -71,7 +82,69 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 
 	err = h.svc.Update(c.Context(), int64(userId), &req)
 	if err != nil {
-		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+		switch {
+		case errors.Is(err, services.ErrUserNotFound):
+			return ResError(c, fiber.StatusNotFound, "NOT_FOUND", err.Error())
+		case errors.Is(err, services.ErrEmailTaken):
+			return ResError(c, fiber.StatusConflict, "CONFLICT", err.Error())
+		case errors.Is(err, services.ErrLastAdmin):
+			return ResError(c, fiber.StatusConflict, "CONFLICT", err.Error())
+		default:
+			return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+		}
 	}
 	return ResOk(c, fiber.StatusOK, fiber.Map{"message": "user updated"}, nil, nil)
+}
+
+func (h *UserHandler) Delete(c *fiber.Ctx) error {
+	userId, err := c.ParamsInt("id")
+	if err != nil {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", "invalid user id")
+	}
+
+	// Removing your own account would end the session you are working in.
+	if actor, _ := c.Locals("userID").(string); actor == strconv.Itoa(userId) {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", "you cannot delete your own account")
+	}
+
+	if err := h.svc.Delete(c.Context(), int64(userId)); err != nil {
+		switch {
+		case errors.Is(err, services.ErrUserNotFound):
+			return ResError(c, fiber.StatusNotFound, "NOT_FOUND", err.Error())
+		case errors.Is(err, services.ErrLastAdmin):
+			return ResError(c, fiber.StatusConflict, "CONFLICT", err.Error())
+		default:
+			return ResError(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		}
+	}
+	return ResOk(c, fiber.StatusOK, fiber.Map{"message": "user deleted"}, nil, nil)
+}
+
+func (h *UserHandler) SetPassword(c *fiber.Ctx) error {
+	userId, err := c.ParamsInt("id")
+	if err != nil {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", "invalid user id")
+	}
+
+	var req struct {
+		Password string `json:"password"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+	}
+	if req.Password == "" {
+		return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", "password is required")
+	}
+
+	if err := h.svc.SetPassword(c.Context(), int64(userId), req.Password); err != nil {
+		switch {
+		case errors.Is(err, services.ErrUserNotFound):
+			return ResError(c, fiber.StatusNotFound, "NOT_FOUND", err.Error())
+		case errors.Is(err, services.ErrWeakPassword):
+			return ResError(c, fiber.StatusBadRequest, "BAD_REQUEST", err.Error())
+		default:
+			return ResError(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		}
+	}
+	return ResOk(c, fiber.StatusOK, fiber.Map{"message": "password updated"}, nil, nil)
 }

@@ -36,4 +36,5 @@ type UserUpdate struct {
 	LastName    *string `json:"last_name"`
 	Bio         *string `json:"bio"`
 	RoleID      *int64  `json:"role_id"`
+	IsActive    *bool   `json:"is_active"`
 }

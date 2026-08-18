@@ -79,20 +79,29 @@ import {
   User,
   UserX,
 } from "lucide-react"
+import { format } from "date-fns"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
-  getUserById,
-  userActivities,
-  userRoles,
-  userSessions,
-  userStatuses,
-  type UserItem,
-  type UserStatus,
-} from "./data"
+  useDeleteUserMutation,
+  useGetUserQuery,
+  useListRolesQuery,
+  useSetUserPasswordMutation,
+  useUpdateUserMutation,
+} from "@/store/api/cmsApi"
+import { apiError } from "@/utils/apiError"
+import type { UserAccount } from "@/types/cms"
+import { userActivities, userSessions } from "./data"
 
-const statusVariant: Record<UserStatus, "default" | "secondary" | "outline"> = {
-  Active: "default",
-  Inactive: "secondary",
-  Pending: "outline",
+function fullName(user: UserAccount) {
+  const name = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()
+  return name || user.display_name || user.email
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "Never"
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "Never" : format(date, "MMM dd yyyy, p")
 }
 
 const schema = z.object({
@@ -110,8 +119,8 @@ const schema = z.object({
     .max(50, "Display name must be less than 50 characters"),
   email: z.string().email("Enter a valid email address"),
   bio: z.string().max(160, "Bio must be less than 160 characters"),
-  role: z.string().min(1, "Select a role"),
-  status: z.enum(["Active", "Inactive", "Pending"]),
+  role_id: z.string().min(1, "Select a role"),
+  status: z.enum(["Active", "Inactive"]),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -119,11 +128,36 @@ type FormValues = z.infer<typeof schema>
 function UserDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const found = getUserById(id)
-  const [user, setUser] = useState<UserItem | undefined>(found)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  if (!user) {
+  const { data: user, isLoading, isError, error } = useGetUserQuery(id ?? "", {
+    skip: !id,
+  })
+  const [updateUser] = useUpdateUserMutation()
+  const [deleteUser, { isLoading: deleting }] = useDeleteUserMutation()
+
+  const setActive = async (isActive: boolean) => {
+    if (!user) return
+    try {
+      await updateUser({ id: user.id, body: { is_active: isActive } }).unwrap()
+      toast.success(isActive ? "User activated" : "User deactivated")
+    } catch (e) {
+      toast.error(apiError(e, "Could not update the user"))
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <PageContainer title="User">
+        <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+          <Skeleton className="h-72 w-full rounded-xl" />
+          <Skeleton className="h-96 w-full rounded-xl" />
+        </div>
+      </PageContainer>
+    )
+  }
+
+  if (isError || !user) {
     return (
       <PageContainer title="User not found">
         <Empty>
@@ -133,7 +167,9 @@ function UserDetailPage() {
             </EmptyMedia>
             <EmptyTitle>User not found</EmptyTitle>
             <EmptyDescription>
-              The user you are looking for does not exist or has been removed.
+              {isError
+                ? apiError(error, "This user could not be loaded.")
+                : "The user you are looking for does not exist or has been removed."}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
@@ -149,7 +185,7 @@ function UserDetailPage() {
 
   return (
     <PageContainer
-      title={user.displayName}
+      title={user.display_name || fullName(user)}
       description={user.email}
       actions={
         <>
@@ -185,10 +221,10 @@ function UserDetailPage() {
                   Copy email
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onSelect={() => toast.success("Password reset link sent")}
+                  onSelect={() => setActive(!user.is_active)}
                 >
                   <KeyRound />
-                  Reset password
+                  {user.is_active ? "Deactivate" : "Activate"}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
@@ -226,11 +262,15 @@ function UserDetailPage() {
           </TabsList>
 
           <TabsContent value="profile">
-            <ProfileTab user={user} onSave={setUser} />
+            <ProfileTab user={user} />
           </TabsContent>
 
           <TabsContent value="security">
-            <SecurityTab user={user} onDelete={() => setConfirmDelete(true)} />
+            <SecurityTab
+              user={user}
+              onDelete={() => setConfirmDelete(true)}
+              onToggleActive={setActive}
+            />
           </TabsContent>
 
           <TabsContent value="activity">
@@ -244,8 +284,8 @@ function UserDetailPage() {
           <DialogHeader>
             <DialogTitle>Delete user</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {user.displayName}? This action
-              cannot be undone.
+              Are you sure you want to delete {fullName(user)} ({user.email})?
+              This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -254,7 +294,14 @@ function UserDetailPage() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
+              disabled={deleting}
+              onClick={async () => {
+                try {
+                  await deleteUser(user.id).unwrap()
+                } catch (e) {
+                  toast.error(apiError(e, "Could not delete the user"))
+                  return
+                }
                 setConfirmDelete(false)
                 toast.success("User deleted")
                 navigate("/users")
@@ -269,27 +316,29 @@ function UserDetailPage() {
   )
 }
 
-function UserSummaryCard({ user }: { user: UserItem }) {
+function UserSummaryCard({ user }: { user: UserAccount }) {
   return (
     <Card className="h-fit ring-0 bg-background">
       <CardContent className="flex flex-col items-center gap-2 text-center">
         <Avatar className="size-16">
-          <AvatarImage src={user.avatar} alt={user.displayName} />
+          <AvatarImage src={user.avatar_url ?? undefined} alt={fullName(user)} />
           <AvatarFallback>
-            {user.firstName.charAt(0)}
-            {user.lastName.charAt(0)}
+            {(user.first_name?.charAt(0) ?? "") +
+              (user.last_name?.charAt(0) ?? "") || "?"}
           </AvatarFallback>
         </Avatar>
         <div>
-          <p className="font-medium">{user.displayName}</p>
+          <p className="font-medium">{user.display_name || fullName(user)}</p>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <Badge variant="outline">
             <ShieldUser />
-            {user.role}
+            {user.role?.name ?? "No role"}
           </Badge>
-          <Badge variant={statusVariant[user.status]}>{user.status}</Badge>
+          <Badge variant={user.is_active ? "default" : "secondary"}>
+            {user.is_active ? "Active" : "Inactive"}
+          </Badge>
         </div>
       </CardContent>
 
@@ -299,22 +348,22 @@ function UserSummaryCard({ user }: { user: UserItem }) {
         <SummaryRow
           icon={<CalendarDays className="size-4 text-muted-foreground" />}
           label="Joined"
-          value={user.joinDate}
+          value={formatDate(user.created_at)}
         />
         <SummaryRow
           icon={<Clock className="size-4 text-muted-foreground" />}
-          label="Last active"
-          value={user.lastActive}
+          label="Last login"
+          value={formatDate(user.last_login_at)}
         />
         <SummaryRow
           icon={<ScrollText className="size-4 text-muted-foreground" />}
-          label="Posts"
-          value={String(user.posts)}
+          label="User ID"
+          value={String(user.id)}
         />
         <SummaryRow
           icon={<MessageSquare className="size-4 text-muted-foreground" />}
-          label="Comments"
-          value={String(user.comments)}
+          label="Updated"
+          value={formatDate(user.updated_at)}
         />
       </CardContent>
     </Card>
@@ -341,31 +390,43 @@ function SummaryRow({
   )
 }
 
-function ProfileTab({
-  user,
-  onSave,
-}: {
-  user: UserItem
-  onSave: (user: UserItem) => void
-}) {
+function ProfileTab({ user }: { user: UserAccount }) {
+  const { data: roles = [], isFetching: rolesLoading } = useListRolesQuery()
+  const [updateUser, { isLoading: saving }] = useUpdateUserMutation()
+
   const form = useForm<FormValues>({
     mode: "onChange",
-    defaultValues: {
-      firstName: user.firstName,
-      lastName: user.lastName,
-      displayName: user.displayName,
+    values: {
+      firstName: user.first_name ?? "",
+      lastName: user.last_name ?? "",
+      displayName: user.display_name ?? "",
       email: user.email,
-      bio: user.bio,
-      role: user.role,
-      status: user.status,
+      bio: user.bio ?? "",
+      role_id: String(user.role_id ?? ""),
+      status: user.is_active ? ("Active" as const) : ("Inactive" as const),
     },
     resolver: zodResolver(schema),
   })
 
-  const onSubmit = (values: FormValues) => {
-    onSave({ ...user, ...values })
-    form.reset(values)
-    toast.success("Profile updated successfully")
+  const onSubmit = async (values: FormValues) => {
+    try {
+      await updateUser({
+        id: user.id,
+        body: {
+          email: values.email,
+          display_name: values.displayName,
+          first_name: values.firstName,
+          last_name: values.lastName,
+          bio: values.bio,
+          role_id: Number(values.role_id),
+          is_active: values.status === "Active",
+        },
+      }).unwrap()
+      form.reset(values)
+      toast.success("Profile updated successfully")
+    } catch (e) {
+      toast.error(apiError(e, "Could not save the profile"))
+    }
   }
 
   return (
@@ -449,7 +510,7 @@ function ProfileTab({
                 <Field>
                   <FormField
                     control={form.control}
-                    name="role"
+                    name="role_id"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Role</FormLabel>
@@ -459,14 +520,17 @@ function ProfileTab({
                         >
                           <FormControl>
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a role" />
+                              <SelectValue placeholder={rolesLoading ? "Loading roles …" : "Select a role"} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             <SelectGroup>
-                              {userRoles.map((role) => (
-                                <SelectItem key={role} value={role}>
-                                  {role}
+                              {roles.map((role) => (
+                                <SelectItem
+                                  key={role.id}
+                                  value={String(role.id)}
+                                >
+                                  {role.name}
                                 </SelectItem>
                               ))}
                             </SelectGroup>
@@ -495,7 +559,7 @@ function ProfileTab({
                           </FormControl>
                           <SelectContent>
                             <SelectGroup>
-                              {userStatuses.map((status) => (
+                              {["Active", "Inactive"].map((status) => (
                                 <SelectItem key={status} value={status}>
                                   {status}
                                 </SelectItem>
@@ -536,7 +600,11 @@ function ProfileTab({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={!form.formState.isDirty}>
+              <Button
+                type="submit"
+                disabled={!form.formState.isDirty || saving}
+              >
+                {saving && <Spinner />}
                 Save changes
               </Button>
             </div>
@@ -550,11 +618,26 @@ function ProfileTab({
 function SecurityTab({
   user,
   onDelete,
+  onToggleActive,
 }: {
-  user: UserItem
+  user: UserAccount
   onDelete: () => void
+  onToggleActive: (isActive: boolean) => void
 }) {
   const [twoFactor, setTwoFactor] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [setUserPassword, { isLoading: savingPassword }] =
+    useSetUserPasswordMutation()
+
+  const submitPassword = async () => {
+    try {
+      await setUserPassword({ id: user.id, password: newPassword }).unwrap()
+      setNewPassword("")
+      toast.success("Password updated")
+    } catch (e) {
+      toast.error(apiError(e, "Could not update the password"))
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -562,24 +645,36 @@ function SecurityTab({
         <CardHeader className="px-1">
           <CardTitle>Authentication</CardTitle>
           <CardDescription>
-            Manage how {user.firstName} signs in to the control panel.
+            Manage how {user.first_name} signs in to the control panel.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 px-1">
-          <div className="flex items-center justify-between gap-4">
-            <div>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0">
               <p className="font-medium">Password</p>
               <p className="text-sm text-muted-foreground">
-                Send a reset link to {user.email}.
+                Set a new password for {user.email}. At least 8 characters with
+                a letter and a digit.
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => toast.success("Password reset link sent")}
-            >
-              <KeyRound />
-              Reset password
-            </Button>
+            <div className="flex items-center gap-2">
+              <Input
+                type="password"
+                autoComplete="new-password"
+                placeholder="New password"
+                className="w-56"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+              />
+              <Button
+                variant="outline"
+                disabled={newPassword.length < 8 || savingPassword}
+                onClick={submitPassword}
+              >
+                {savingPassword ? <Spinner /> : <KeyRound />}
+                Update
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-4">
@@ -658,10 +753,10 @@ function SecurityTab({
         <CardContent className="flex flex-wrap items-center gap-2 px-1">
           <Button
             variant="outline"
-            onClick={() => toast.success("User deactivated")}
+            onClick={() => onToggleActive(!user.is_active)}
           >
             <UserX />
-            Deactivate user
+            {user.is_active ? "Deactivate user" : "Activate user"}
           </Button>
           <Button variant="destructive" onClick={onDelete}>
             <TrashIcon />

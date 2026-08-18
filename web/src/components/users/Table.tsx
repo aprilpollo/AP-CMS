@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router"
 import PageContainer from "@/shared/PageContainer"
 import Link from "@/shared/Link"
@@ -14,8 +14,18 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -58,10 +68,18 @@ import {
   Search,
   ShieldUser,
   SlidersHorizontal,
+  TrashIcon,
+  UserCheck,
   UserShield,
+  UserX,
 } from "lucide-react"
 import { format } from "date-fns"
-import { useListUsersQuery } from "@/store/api/cmsApi"
+import { toast } from "sonner"
+import {
+  useDeleteUserMutation,
+  useListUsersQuery,
+  useUpdateUserMutation,
+} from "@/store/api/cmsApi"
 import { apiError } from "@/utils/apiError"
 import type { UserAccount } from "@/types/cms"
 
@@ -98,7 +116,15 @@ function pageItems(current: number, total: number): (number | "ellipsis")[] {
   return out
 }
 
-function UserRowActions({ user }: { user: UserAccount }) {
+function UserRowActions({
+  user,
+  onToggleActive,
+  onDelete,
+}: {
+  user: UserAccount
+  onToggleActive: (user: UserAccount) => void
+  onDelete: (user: UserAccount) => void
+}) {
   const navigate = useNavigate()
 
   return (
@@ -129,6 +155,20 @@ function UserRowActions({ user }: { user: UserAccount }) {
             Change role
           </DropdownMenuItem>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem onSelect={() => onToggleActive(user)}>
+            {user.is_active ? <UserX /> : <UserCheck />}
+            {user.is_active ? "Deactivate" : "Activate"}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => onDelete(user)}
+          >
+            <TrashIcon />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -141,6 +181,10 @@ function UsersListPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+
+  const [toDelete, setToDelete] = useState<UserAccount | null>(null)
+  const [updateUser, { isLoading: updating }] = useUpdateUserMutation()
+  const [deleteUser, { isLoading: deleting }] = useDeleteUserMutation()
 
   const { data, isFetching, isError, error, refetch } = useListUsersQuery({
     search: search.trim() || undefined,
@@ -158,15 +202,12 @@ function UsersListPage() {
   const rangeEnd = (currentPage - 1) * pageSize + items.length
   const loading = isFetching && items.length === 0
 
-  // A new result set never keeps stale selections from the previous page.
-  useEffect(() => {
+  // Paging and selection always move together: a new slice of rows must not
+  // keep ticks from the previous one.
+  const goToPage = (next: number) => {
+    setPage(next)
     setSelectedIds([])
-  }, [page, pageSize, search])
-
-  // The debounced term arrives after the keystroke, so reset paging with it.
-  useEffect(() => {
-    setPage(1)
-  }, [search])
+  }
 
   const allSelected = items.length > 0 && selectedIds.length === items.length
   const someSelected = selectedIds.length > 0 && !allSelected
@@ -179,6 +220,53 @@ function UsersListPage() {
       checked ? [...prev, id] : prev.filter((selected) => selected !== id)
     )
 
+  const setActive = async (user: UserAccount, isActive: boolean) => {
+    try {
+      await updateUser({
+        id: user.id,
+        body: { is_active: isActive },
+      }).unwrap()
+      toast.success(
+        isActive
+          ? `${fullName(user)} can sign in again`
+          : `${fullName(user)} has been deactivated`
+      )
+    } catch (e) {
+      toast.error(apiError(e, "Could not update the user"))
+    }
+  }
+
+  const removeUser = async (user: UserAccount) => {
+    try {
+      await deleteUser(user.id).unwrap()
+      setSelectedIds((prev) => prev.filter((id) => id !== user.id))
+      setToDelete(null)
+      toast.success(`${fullName(user)} has been deleted`)
+    } catch (e) {
+      toast.error(apiError(e, "Could not delete the user"))
+    }
+  }
+
+  const bulkSetActive = async (isActive: boolean) => {
+    const targets = items.filter((item) => selectedIds.includes(item.id))
+    const results = await Promise.allSettled(
+      targets.map((user) =>
+        updateUser({ id: user.id, body: { is_active: isActive } }).unwrap()
+      )
+    )
+    const failed = results.filter((r) => r.status === "rejected").length
+    if (failed) {
+      toast.error(`${failed} of ${targets.length} could not be updated`)
+    } else {
+      toast.success(
+        `${targets.length} user${targets.length > 1 ? "s" : ""} ${
+          isActive ? "activated" : "deactivated"
+        }`
+      )
+    }
+    setSelectedIds([])
+  }
+
   return (
     <PageContainer
       title="Users Management"
@@ -189,16 +277,42 @@ function UsersListPage() {
           <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={(e) => {
+              setSearchInput(e.target.value)
+              setPage(1)
+              setSelectedIds([])
+            }}
             placeholder="Search name or email …"
             className="h-7 rounded-sm pl-8"
           />
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (
-            <span className="text-sm text-muted-foreground">
-              {selectedIds.length} selected
-            </span>
+            <>
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.length} selected
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-sm"
+                disabled={updating}
+                onClick={() => bulkSetActive(true)}
+              >
+                <UserCheck />
+                Activate
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-sm"
+                disabled={updating}
+                onClick={() => bulkSetActive(false)}
+              >
+                <UserX />
+                Deactivate
+              </Button>
+            </>
           )}
           <Button size="sm" variant="ghost" className="rounded-sm">
             <SlidersHorizontal />
@@ -353,7 +467,11 @@ function UsersListPage() {
                     {formatDate(item.last_login_at)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <UserRowActions user={item} />
+                    <UserRowActions
+                      user={item}
+                      onToggleActive={(user) => setActive(user, !user.is_active)}
+                      onDelete={(user) => setToDelete(user)}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -395,7 +513,7 @@ function UsersListPage() {
               value={String(pageSize)}
               onValueChange={(value) => {
                 setPageSize(Number(value))
-                setPage(1)
+                goToPage(1)
               }}
             >
               <SelectTrigger
@@ -433,7 +551,7 @@ function UsersListPage() {
                     tabIndex={currentPage === 1 ? -1 : undefined}
                     onClick={(event) => {
                       event.preventDefault()
-                      setPage((prev) => Math.max(1, prev - 1))
+                      goToPage(Math.max(1, currentPage - 1))
                     }}
                   />
                 </PaginationItem>
@@ -450,7 +568,7 @@ function UsersListPage() {
                         isActive={item === currentPage}
                         onClick={(event) => {
                           event.preventDefault()
-                          setPage(item)
+                          goToPage(item)
                         }}
                       >
                         {item}
@@ -466,7 +584,7 @@ function UsersListPage() {
                     tabIndex={currentPage === pageCount ? -1 : undefined}
                     onClick={(event) => {
                       event.preventDefault()
-                      setPage((prev) => Math.min(pageCount, prev + 1))
+                      goToPage(Math.min(pageCount, currentPage + 1))
                     }}
                   />
                 </PaginationItem>
@@ -475,6 +593,35 @@ function UsersListPage() {
           </div>
         </footer>
       </div>
+
+      <Dialog
+        open={toDelete !== null}
+        onOpenChange={(open) => !open && setToDelete(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete user</DialogTitle>
+            <DialogDescription>
+              {toDelete && `Delete ${fullName(toDelete)} (${toDelete.email})?`}{" "}
+              The account stops working immediately. Posts and audit entries
+              they created stay in place.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting}
+              onClick={() => toDelete && removeUser(toDelete)}
+            >
+              {deleting && <Spinner />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   )
 }

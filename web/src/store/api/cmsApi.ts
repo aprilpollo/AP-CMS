@@ -10,10 +10,11 @@ import type {
   PostType,
   Tag,
   UserAccount,
+  UserRole,
 } from "@/types/cms"
 
 const api = apiService.enhanceEndpoints({
-  addTagTypes: ["Post", "Category", "Tag", "Revision", "Media", "User"],
+  addTagTypes: ["Post", "Category", "Tag", "Revision", "Media", "User", "Role"],
 })
 
 export type PostListParams = {
@@ -81,6 +82,26 @@ export type UserListParams = {
 export type UserListResult = {
   items: UserAccount[]
   pagination?: Pagination
+}
+
+export type CreateUserBody = {
+  email: string
+  display_name: string
+  first_name: string
+  last_name: string
+  bio?: string
+  role_id: number
+  password: string
+}
+
+export type UpdateUserBody = {
+  email?: string
+  display_name?: string
+  first_name?: string
+  last_name?: string
+  bio?: string
+  role_id?: number
+  is_active?: boolean
 }
 
 export const cmsApi = api.injectEndpoints({
@@ -233,6 +254,58 @@ export const cmsApi = api.injectEndpoints({
           : [{ type: "User" as const, id: "LIST" }],
     }),
 
+    getUser: build.query<UserAccount, number | string>({
+      query: (id) => `/api/v1/users/${id}`,
+      transformResponse: (res: ApiEnvelope<UserAccount>) => res.payload,
+      providesTags: (result) => (result ? [{ type: "User", id: result.id }] : []),
+    }),
+
+    createUser: build.mutation<UserAccount, CreateUserBody>({
+      query: (body) => ({ url: "/api/v1/users", method: "POST", body }),
+      transformResponse: (res: ApiEnvelope<UserAccount>) => res.payload,
+      invalidatesTags: [{ type: "User", id: "LIST" }],
+    }),
+
+    updateUser: build.mutation<
+      { message: string },
+      { id: number | string; body: UpdateUserBody }
+    >({
+      query: ({ id, body }) => ({
+        url: `/api/v1/users/${id}`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (res: ApiEnvelope<{ message: string }>) => res.payload,
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "User", id: arg.id },
+        { type: "User", id: "LIST" },
+      ],
+    }),
+
+    setUserPassword: build.mutation<
+      { message: string },
+      { id: number | string; password: string }
+    >({
+      query: ({ id, password }) => ({
+        url: `/api/v1/users/${id}/password`,
+        method: "PUT",
+        body: { password },
+      }),
+      transformResponse: (res: ApiEnvelope<{ message: string }>) => res.payload,
+    }),
+
+    deleteUser: build.mutation<{ message: string }, number | string>({
+      query: (id) => ({ url: `/api/v1/users/${id}`, method: "DELETE" }),
+      transformResponse: (res: ApiEnvelope<{ message: string }>) => res.payload,
+      invalidatesTags: [{ type: "User", id: "LIST" }],
+    }),
+
+    listRoles: build.query<UserRole[], void>({
+      query: () => ({ url: "/api/v1/masters/roles", params: { _limit: 100 } }),
+      transformResponse: (res: ApiEnvelope<UserRole[]>) => res.payload ?? [],
+      providesTags: [{ type: "Role", id: "LIST" }],
+    }),
+
     listTags: build.query<Tag[], void>({
       query: () => "/api/v1/tags",
       transformResponse: (res: ApiEnvelope<Tag[]>) => res.payload ?? [],
@@ -282,6 +355,12 @@ export const {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
   useListUsersQuery,
+  useGetUserQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+  useSetUserPasswordMutation,
+  useListRolesQuery,
   useListTagsQuery,
   useDeleteTagMutation,
   useListMediaQuery,

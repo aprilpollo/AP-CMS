@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"errors"
-	//"strconv"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,27 +45,28 @@ func (s *userService) GetByID(ctx context.Context, id int64) (*domain.User, erro
 	return s.repo.FindByID(ctx, id)
 }
 
-func (s *userService) Create(ctx context.Context, in *domain.UserCreate) error {
+func (s *userService) Create(ctx context.Context, in *domain.UserCreate) (*domain.User, error) {
 
 	if !validPassword(in.Password) {
-		return ErrWeakPassword
+		return nil, ErrWeakPassword
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	in.Password = string(hash)
 
-	if err := s.repo.Save(ctx, in); err != nil {
+	user, err := s.repo.Save(ctx, in)
+	if err != nil {
 		if isUniqueViolation(err) {
-			return ErrEmailTaken
+			return nil, ErrEmailTaken
 		}
-		return err
+		return nil, err
 	}
 
-	return nil
+	return user, nil
 }
 
 func (s *userService) Update(ctx context.Context, id int64, in *domain.UserUpdate) error {
@@ -77,6 +78,16 @@ func (s *userService) Update(ctx context.Context, id int64, in *domain.UserUpdat
 		return ErrUserNotFound
 	}
 
+	// Deactivating or demoting the only administrator would lock everyone out
+	// of user management, so both paths run through the same guard as Delete.
+	losesAdmin := (in.IsActive != nil && !*in.IsActive) ||
+		(in.RoleID != nil && *in.RoleID != user.RoleID)
+	if losesAdmin {
+		if err := s.assertNotLastAdmin(ctx, user); err != nil {
+			return err
+		}
+	}
+
 	if err := s.repo.Update(ctx, id, in); err != nil {
 		if isUniqueViolation(err) {
 			return ErrEmailTaken
@@ -84,6 +95,56 @@ func (s *userService) Update(ctx context.Context, id int64, in *domain.UserUpdat
 		return err
 	}
 
+	return nil
+}
+
+func (s *userService) Delete(ctx context.Context, id int64) error {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+	if err := s.assertNotLastAdmin(ctx, user); err != nil {
+		return err
+	}
+	return s.repo.Delete(ctx, id)
+}
+
+// SetPassword lets an administrator replace another account's password
+// without going through the e-mail reset flow.
+func (s *userService) SetPassword(ctx context.Context, id int64, password string) error {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+	if !validPassword(password) {
+		return ErrWeakPassword
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.repo.UpdatePassword(ctx, strconv.FormatInt(id, 10), string(hash))
+}
+
+// assertNotLastAdmin fails when the user is the only active administrator left.
+func (s *userService) assertNotLastAdmin(ctx context.Context, user *domain.User) error {
+	if user.Role == nil || user.Role.Slug != "admin" || !user.IsActive {
+		return nil
+	}
+	admins, err := s.repo.CountByRoleID(ctx, user.RoleID)
+	if err != nil {
+		return err
+	}
+	if admins <= 1 {
+		return ErrLastAdmin
+	}
 	return nil
 }
 
