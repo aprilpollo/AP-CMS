@@ -2,6 +2,7 @@ package output
 
 import (
 	"context"
+	"time"
 
 	"apcms/internal/core/domain"
 	"apcms/internal/pkg/query"
@@ -16,4 +17,5 @@ type UserRepository interface {
 	Update(ctx context.Context, id int64, user *domain.UserUpdate) error
 	UpdatePassword(ctx context.Context, id, passwordHash string) error
 	UpdateAvatar(ctx context.Context, id int64, avatarURL string) error
+	UpdateLastLogin(ctx context.Context, id int64, at time.Time) error
 }

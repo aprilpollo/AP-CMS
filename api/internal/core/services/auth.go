@@ -85,6 +85,10 @@ func (s *authService) Login(ctx context.Context, email, password, ip string) (*d
 		return nil, err
 	}
 
+	// Best effort, like the audit entry: a bookkeeping failure must not block
+	// a sign-in that already succeeded.
+	_ = s.users.UpdateLastLogin(ctx, user.ID, time.Now().UTC())
+
 	_ = s.audit.Log(ctx, domain.AuditEntry{
 		UserID: &user.ID, ActionCode: "login", EntityType: "user", EntityID: &user.ID, IP: ip,
 	})

@@ -20,6 +20,29 @@ export type Author = {
   role?: { id: number; name: string; slug: string }
 }
 
+export type UserRole = {
+  id: number
+  name: string
+  slug: string
+}
+
+/** A user account as returned by /api/v1/users. */
+export type UserAccount = {
+  id: number
+  email: string
+  display_name: string
+  first_name: string
+  last_name: string
+  bio?: string | null
+  avatar_url?: string | null
+  role_id: number
+  role?: UserRole | null
+  is_active: boolean
+  last_login_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type Category = {
   id: string
   parent_id?: string | null

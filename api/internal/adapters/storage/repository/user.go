@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"time"
 
 	"apcms/internal/adapters/storage/orm/models"
 	"apcms/internal/core/domain"
@@ -93,6 +94,15 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id, passwordHash st
 		Model(&models.UserModel{}).
 		Where("id = ?", id).
 		Updates(map[string]any{"password_hash": passwordHash}).Error
+}
+
+func (r *userRepository) UpdateLastLogin(ctx context.Context, id int64, at time.Time) error {
+	return r.db.WithContext(ctx).
+		Model(&models.UserModel{}).
+		Where("id = ?", id).
+		// UpdateColumns: a successful sign-in is not an edit of the profile,
+		// so it must not bump updated_at.
+		UpdateColumns(map[string]any{"last_login_at": at}).Error
 }
 
 func (r *userRepository) UpdateAvatar(ctx context.Context, id int64, avatarURL string) error {

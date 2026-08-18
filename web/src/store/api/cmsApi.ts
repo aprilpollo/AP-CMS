@@ -9,10 +9,11 @@ import type {
   PostRevision,
   PostType,
   Tag,
+  UserAccount,
 } from "@/types/cms"
 
 const api = apiService.enhanceEndpoints({
-  addTagTypes: ["Post", "Category", "Tag", "Revision", "Media"],
+  addTagTypes: ["Post", "Category", "Tag", "Revision", "Media", "User"],
 })
 
 export type PostListParams = {
@@ -65,6 +66,21 @@ export type PostBody = {
   category_ids?: number[]
   tags?: string[]
   featured_image_url?: string
+}
+
+export type UserListParams = {
+  search?: string
+  role_id?: number
+  is_active?: boolean
+  _page?: number
+  _limit?: number
+  _sort?: string
+  _order?: "ASC" | "DESC"
+}
+
+export type UserListResult = {
+  items: UserAccount[]
+  pagination?: Pagination
 }
 
 export const cmsApi = api.injectEndpoints({
@@ -191,6 +207,32 @@ export const cmsApi = api.injectEndpoints({
       ],
     }),
 
+    listUsers: build.query<UserListResult, UserListParams>({
+      // The API only supports `<field>_<operator>` filters (ANDed, no OR), so a
+      // single search box has to pick one field: e-mail when the query looks
+      // like one, display name otherwise.
+      query: ({ search, ...rest }) => {
+        const params: Record<string, string | number | boolean> = { ...rest }
+        const term = search?.trim()
+        if (term) {
+          if (term.includes("@")) params.email_contains = term
+          else params.display_name_contains = term
+        }
+        return { url: "/api/v1/users", params }
+      },
+      transformResponse: (res: ApiEnvelope<UserAccount[]>) => ({
+        items: res.payload ?? [],
+        pagination: res.pagination,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map((u) => ({ type: "User" as const, id: u.id })),
+              { type: "User" as const, id: "LIST" },
+            ]
+          : [{ type: "User" as const, id: "LIST" }],
+    }),
+
     listTags: build.query<Tag[], void>({
       query: () => "/api/v1/tags",
       transformResponse: (res: ApiEnvelope<Tag[]>) => res.payload ?? [],
@@ -239,6 +281,7 @@ export const {
   useCreateCategoryMutation,
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
+  useListUsersQuery,
   useListTagsQuery,
   useDeleteTagMutation,
   useListMediaQuery,
