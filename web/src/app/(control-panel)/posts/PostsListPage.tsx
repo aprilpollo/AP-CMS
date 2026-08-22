@@ -41,6 +41,7 @@ function PostsListPage() {
     <PageContainer
       title="Posts"
       description="Create and manage your posts."
+      className="p-4 md:p-6"
       actions={
         <Button
           onClick={() => navigate("/posts/new")}

@@ -282,6 +282,7 @@ function ConnectionsPage() {
   return (
     <PageContainer
       title="Connections"
+      className="p-4 md:p-6"
       description="Sites that are allowed to pull content from this CMS."
     >
       <div className="grid gap-4 sm:grid-cols-3">

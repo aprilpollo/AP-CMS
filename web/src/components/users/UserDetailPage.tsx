@@ -197,6 +197,7 @@ function UserDetailPage() {
     <PageContainer
       title={user.display_name || fullName(user)}
       description={user.email}
+      className="p-4 md:p-6"
       actions={
         <>
           <Button

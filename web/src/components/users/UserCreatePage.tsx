@@ -194,6 +194,7 @@ function UserCreatePage() {
   return (
     <PageContainer
       title="Add User"
+      className="p-4 md:p-6"
       description="Create a new account and set its permissions."
       actions={
         <Button

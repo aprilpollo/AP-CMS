@@ -355,6 +355,7 @@ function CategoriesPage() {
     <PageContainer
       title="Categories"
       description="Organize posts into a hierarchical category tree."
+      className="p-4 md:p-6"
       actions={
         <Button size="sm" onClick={openAdd}>
           <Plus data-icon="inline-start" />

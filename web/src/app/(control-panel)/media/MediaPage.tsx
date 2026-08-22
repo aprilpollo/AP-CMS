@@ -6,6 +6,7 @@ function MediaPage() {
     <PageContainer
       title="Media"
       description="Upload and manage media files."
+      className="p-4 md:p-6"
     >
       <MediaLibraryView />
     </PageContainer>

@@ -110,6 +110,7 @@ function TagsPage() {
     <PageContainer
       title="Tags"
       description="Tags are created automatically when you add them to a post."
+      className="p-4 md:p-6"
     >
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={TagsIcon} label="Total tags" value={stats.total} />

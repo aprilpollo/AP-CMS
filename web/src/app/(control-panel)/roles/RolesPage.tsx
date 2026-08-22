@@ -84,7 +84,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { apiError } from "@/utils/apiError"
 import type { Permission, Role } from "@/types/cms"
@@ -493,8 +492,8 @@ function RolesPage() {
   /** Column tint follows the pointer so a wide matrix stays readable. */
   const colClass = (roleId: number) =>
     cn(
-      "border-l px-2 text-center",
-      activeRoleId === roleId && "bg-muted/60",
+      "px-2 text-center"
+      // activeRoleId === roleId && "bg-muted/60"
       // PROTECTED_SLUGS.has(roles.find((r) => r.id === roleId)?.slug ?? "") &&
       //   "bg-muted/30"
     )
@@ -502,30 +501,31 @@ function RolesPage() {
   return (
     <PageContainer
       title="Roles & Permissions"
+      className="pl-4 md:pl-4"
       description={`${plural(roles.length, "role")} · ${plural(
         permissions.length,
         "permission"
       )} · ${plural(assignedUsers, "user")} assigned`}
-      actions={
-        <>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={!dirty || savingPermissions}
-            onClick={() => setEdits(null)}
-          >
-            Reset
-          </Button>
-          <Button
-            size="sm"
-            disabled={!dirty || savingPermissions}
-            onClick={saveAll}
-          >
-            {savingPermissions && <Spinner data-icon="inline-start" />}
-            {dirty ? `Save ${plural(changedRoles.length, "role")}` : "Saved"}
-          </Button>
-        </>
-      }
+      // actions={
+      //   <>
+      //     <Button
+      //       variant="ghost"
+      //       size="sm"
+      //       disabled={!dirty || savingPermissions}
+      //       onClick={() => setEdits(null)}
+      //     >
+      //       Reset
+      //     </Button>
+      //     <Button
+      //       size="sm"
+      //       disabled={!dirty || savingPermissions}
+      //       onClick={saveAll}
+      //     >
+      //       {savingPermissions && <Spinner data-icon="inline-start" />}
+      //       {dirty ? `Save ${plural(changedRoles.length, "role")}` : "Saved"}
+      //     </Button>
+      //   </>
+      // }
     >
       {rolesError ? (
         <Alert variant="destructive">
@@ -562,15 +562,15 @@ function RolesPage() {
           </Button>
         </Empty>
       ) : (
-        <div className="[&>div]:h-[calc(100vh-150px)]">
+        <div className="[&>div]:h-[calc(100vh-144px)]">
           <Table
             className="border-separate border-spacing-0"
             onMouseLeave={() => setActiveRoleId(null)}
           >
-            <TableHeader className="sticky top-0 z-10 bg-background">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="h-auto w-72 min-w-72 border-r border-b bg-background p-2">
-                  <InputGroup>
+            <TableHeader className="sticky top-0 z-20 bg-background">
+              <TableRow className="*:border-border [&>:not(:last-child)]:border-r hover:bg-transparent">
+                <TableHead className="sticky left-0 z-30 h-auto w-72 min-w-72 border-b bg-background p-2">
+                  {/* <InputGroup>
                     <InputGroupAddon>
                       <Search />
                     </InputGroupAddon>
@@ -591,7 +591,7 @@ function RolesPage() {
                         </Button>
                       </InputGroupAddon>
                     )}
-                  </InputGroup>
+                  </InputGroup> */}
                 </TableHead>
 
                 {roles.map((role) => {
@@ -676,7 +676,7 @@ function RolesPage() {
                   )
                 })}
 
-                <TableHead className="h-auto w-52 min-w-52 border-b border-l p-2 align-top">
+                {/* <TableHead className="h-auto w-52 min-w-52 p-2 align-top">
                   <div className="text-xs font-normal text-muted-foreground">
                     New role
                   </div>
@@ -697,12 +697,11 @@ function RolesPage() {
                       {creating ? <Spinner /> : <Plus />}
                     </Button>
                   </div>
-                </TableHead>
+                </TableHead> */}
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {/* <ScrollArea className="h-[calc(100vh-300px)] border w-full" ScrollBarProps={{ className: "hidden" }}> */}
               {groups.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={roles.length + 2} className="p-0">
@@ -732,17 +731,17 @@ function RolesPage() {
                   const Chevron = isCollapsed ? ChevronRight : ChevronDown
 
                   return (
-                    <Fragment key={group.key}>
-                      <TableRow className="bg-muted hover:bg-muted">
-                        <TableCell className="sticky left-0 z-10 border-r border-b bg-muted p-0">
+                    <Fragment key={group.key} >
+                      <TableRow className="*:border-border [&>:not(:last-child)]:border-r hover:bg-transparent">
+                        <TableCell className="sticky left-0 z-10 p-0">
                           <button
                             type="button"
                             onClick={() => toggleGroupCollapse(group.key)}
                             aria-expanded={!isCollapsed}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium"
                           >
                             <Chevron className="size-4 text-muted-foreground" />
-                            <GroupIcon className="size-4 text-muted-foreground" />
+                            {/* <GroupIcon className="size-4 text-muted-foreground" /> */}
                             {group.label}
                             <span className="text-xs font-normal text-muted-foreground">
                               {group.permissions.length}
@@ -752,7 +751,7 @@ function RolesPage() {
                         {roles.map((role) => (
                           <TableCell
                             key={role.id}
-                            className={cn("border-b", colClass(role.id))}
+                            className={cn("", colClass(role.id))}
                             onMouseEnter={() => setActiveRoleId(role.id)}
                           >
                             <Checkbox
@@ -765,13 +764,15 @@ function RolesPage() {
                             />
                           </TableCell>
                         ))}
-                        <TableCell className="border-b border-l" />
                       </TableRow>
 
                       {!isCollapsed &&
                         group.permissions.map((permission) => (
-                          <TableRow key={permission.id}>
-                            <TableCell className="sticky left-0 z-10 border-r border-b bg-background px-3 py-2">
+                          <TableRow
+                            key={permission.id}
+                            className="*:border-border [&>:not(:last-child)]:border-r hover:bg-transparent"
+                          >
+                            <TableCell className="sticky left-0 z-10 border-r px-3 py-2 border-b">
                               <div className="font-medium">
                                 {permission.name}
                               </div>
@@ -802,17 +803,15 @@ function RolesPage() {
                                 />
                               </TableCell>
                             ))}
-                            <TableCell className="border-b border-l" />
                           </TableRow>
                         ))}
                     </Fragment>
                   )
                 })
               )}
-            {/* </ScrollArea> */}
             </TableBody>
           </Table>
-          </div>
+        </div>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

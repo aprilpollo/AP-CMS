@@ -71,6 +71,7 @@ function Dashboard() {
     <PageContainer
       title="Dashboard"
       description="What your team is working on right now."
+      className="p-4 md:p-6"
       actions={
         <Button size="sm" variant="outline" className="rounded-sm" asChild>
           <Link to="/posts/new">

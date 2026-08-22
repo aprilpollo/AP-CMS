@@ -288,6 +288,7 @@ function UsersListPage() {
   return (
     <PageContainer
       title="Users Management"
+      className="p-4 md:p-6"
       description="Manage user accounts and permissions."
     >
       <header className="flex items-center justify-between py-2">

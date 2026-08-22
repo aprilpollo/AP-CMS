@@ -105,6 +105,7 @@ function AnalyticsPage() {
     <PageContainer
       title="Analytics"
       description="Where the traffic comes from and what it reads."
+      className="p-4 md:p-6"
       actions={
         <>
           <Select value={range} onValueChange={setRange}>
@@ -128,6 +129,7 @@ function AnalyticsPage() {
         </>
       }
     >
+     
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           icon={Users}
@@ -358,6 +360,7 @@ function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+     
     </PageContainer>
   )
 }
