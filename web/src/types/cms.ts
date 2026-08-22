@@ -123,4 +123,22 @@ export type PostRevision = {
   created_at: string
 }
 
+/** A single RBAC capability, e.g. "posts.publish". */
+export type Permission = {
+  id: number
+  name: string
+  slug: string
+}
+
+/** A role with its permission set, as returned by /api/v1/roles. */
+export type Role = {
+  id: number
+  name: string
+  slug: string
+  color?: string
+  user_count?: number
+  created_at?: string
+  permissions?: Permission[]
+}
+
 export type { Pagination }

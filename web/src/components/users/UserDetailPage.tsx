@@ -56,6 +56,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -134,7 +135,12 @@ function UserDetailPage() {
   const navigate = useNavigate()
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const { data: user, isLoading, isError, error } = useGetUserQuery(id ?? "", {
+  const {
+    data: user,
+    isLoading,
+    isError,
+    error,
+  } = useGetUserQuery(id ?? "", {
     skip: !id,
   })
   const [updateUser] = useUpdateUserMutation()
@@ -224,9 +230,7 @@ function UserDetailPage() {
                   <Copy />
                   Copy email
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => setActive(!user.is_active)}
-                >
+                <DropdownMenuItem onSelect={() => setActive(!user.is_active)}>
                   <KeyRound />
                   {user.is_active ? "Deactivate" : "Activate"}
                 </DropdownMenuItem>
@@ -333,7 +337,7 @@ function UserSummaryCard({ user }: { user: UserAccount }) {
   }
 
   return (
-    <Card className="h-fit ring-0 bg-background">
+    <Card className="h-fit bg-background ring-0">
       <CardContent className="flex flex-col items-center gap-2 text-center">
         <AvatarUpload
           defaultImageUrl={user.avatar_url ?? undefined}
@@ -445,7 +449,7 @@ function ProfileTab({ user }: { user: UserAccount }) {
   }
 
   return (
-    <Card className="ring-0 bg-background">
+    <Card className="bg-background ring-0">
       <CardHeader className="px-1">
         <CardTitle>Profile</CardTitle>
         <CardDescription>
@@ -535,7 +539,13 @@ function ProfileTab({ user }: { user: UserAccount }) {
                         >
                           <FormControl>
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder={rolesLoading ? "Loading roles …" : "Select a role"} />
+                              <SelectValue
+                                placeholder={
+                                  rolesLoading
+                                    ? "Loading roles …"
+                                    : "Select a role"
+                                }
+                              />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -644,7 +654,8 @@ function SecurityTab({
     useSetUserPasswordMutation()
   const { data: sessions = [], isLoading: sessionsLoading } =
     useListUserSessionsQuery(user.id)
-  const [revokeSession, { isLoading: revoking }] = useRevokeUserSessionMutation()
+  const [revokeSession, { isLoading: revoking }] =
+    useRevokeUserSessionMutation()
   const [sendInvite, { isLoading: sendingInvite }] = useSendUserInviteMutation()
 
   const revoke = async (sessionId: string) => {
@@ -677,7 +688,7 @@ function SecurityTab({
 
   return (
     <div className="space-y-4">
-      <Card className="ring-0 bg-background">
+      <Card className="bg-background ring-0">
         <CardHeader className="px-1">
           <CardTitle>Authentication</CardTitle>
           <CardDescription>
@@ -685,7 +696,7 @@ function SecurityTab({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 px-1">
-          <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="space-y-4">
             <div className="min-w-0">
               <p className="font-medium">Password</p>
               <p className="text-sm text-muted-foreground">
@@ -721,11 +732,10 @@ function SecurityTab({
               </Button>
             </div>
           </div>
-
         </CardContent>
       </Card>
 
-      <Card className="ring-0 bg-background">
+      <Card className="bg-background ring-0">
         <CardHeader className="px-1">
           <CardTitle>Active sessions</CardTitle>
           <CardDescription>
@@ -774,7 +784,7 @@ function SecurityTab({
         </CardContent>
       </Card>
 
-      <Card className="ring-0 bg-background">
+      <Card className="bg-background ring-0">
         <CardHeader className="px-1">
           <CardTitle className="text-destructive">Danger zone</CardTitle>
           <CardDescription>
@@ -807,49 +817,51 @@ function ActivityTab({ user }: { user: UserAccount }) {
   })
 
   return (
-    <Card className="ring-0 bg-background">
+    <Card className="bg-background ring-0">
       <CardHeader className="px-1">
         <CardTitle>Recent activity</CardTitle>
         <CardDescription>
           Audit entries recorded for this account, newest first.
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-1">
-        {isLoading && (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-10 w-full" />
-            ))}
-          </div>
-        )}
+      <ScrollArea className="h-[calc(100vh-300px)]" ScrollBarProps={{ className: "hidden" }}>
+        <CardContent className="px-1">
+          {isLoading && (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton key={index} className="h-10 w-full" />
+              ))}
+            </div>
+          )}
 
-        {!isLoading && records.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Nothing recorded yet. Sign-ins and content changes show up here.
-          </p>
-        )}
+          {!isLoading && records.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Nothing recorded yet. Sign-ins and content changes show up here.
+            </p>
+          )}
 
-        {records.length > 0 && (
-          <ol className="relative space-y-4 border-l pl-4">
-            {records.map((record) => (
-              <li key={record.id} className="relative">
-                <span className="absolute top-1.5 -left-5.25 size-2 rounded-full bg-border ring-4 ring-background" />
-                <p className="font-medium">
-                  {record.action_name || record.action_code}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {record.entity_type}
-                  {record.entity_id ? ` #${record.entity_id}` : ""}
-                  {record.ip ? ` · ${record.ip}` : ""}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {formatDate(record.created_at)}
-                </p>
-              </li>
-            ))}
-          </ol>
-        )}
-      </CardContent>
+          {records.length > 0 && (
+            <ol className="relative space-y-4 border-l pl-4">
+              {records.map((record) => (
+                <li key={record.id} className="relative">
+                  <span className="absolute top-1.5 -left-5.25 size-2 rounded-full bg-border ring-4 ring-background" />
+                  <p className="font-medium">
+                    {record.action_name || record.action_code}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {record.entity_type}
+                    {record.entity_id ? ` #${record.entity_id}` : ""}
+                    {record.ip ? ` · ${record.ip}` : ""}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {formatDate(record.created_at)}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </CardContent>
+      </ScrollArea>
     </Card>
   )
 }

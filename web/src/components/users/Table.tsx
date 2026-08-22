@@ -67,7 +67,6 @@ import {
   RefreshCw,
   Search,
   ShieldUser,
-  SlidersHorizontal,
   TrashIcon,
   UserCheck,
   UserShield,
@@ -80,6 +79,16 @@ import {
   useListUsersQuery,
   useUpdateUserMutation,
 } from "@/store/api/cmsApi"
+import {
+  UserFilterChips,
+  UserFilterMenu,
+} from "@/components/users/UserFilters"
+import {
+  NO_FILTERS,
+  activeFilterCount,
+  filtersToParams,
+  type UserFilters,
+} from "@/components/users/filters"
 import { apiError } from "@/utils/apiError"
 import type { UserAccount } from "@/types/cms"
 
@@ -178,6 +187,7 @@ function UsersListPage() {
   const navigate = useNavigate()
   const [searchInput, setSearchInput] = useState("")
   const search = useDebounce(searchInput, 350)
+  const [filters, setFilters] = useState<UserFilters>(NO_FILTERS)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -188,6 +198,7 @@ function UsersListPage() {
 
   const { data, isFetching, isError, error, refetch } = useListUsersQuery({
     search: search.trim() || undefined,
+    ...filtersToParams(filters),
     _page: page,
     _limit: pageSize,
     _sort: "created_at",
@@ -206,6 +217,13 @@ function UsersListPage() {
   // keep ticks from the previous one.
   const goToPage = (next: number) => {
     setPage(next)
+    setSelectedIds([])
+  }
+
+  // A different filter means a different result set: restart paging and drop ticks.
+  const applyFilters = (next: UserFilters) => {
+    setFilters(next)
+    setPage(1)
     setSelectedIds([])
   }
 
@@ -314,10 +332,7 @@ function UsersListPage() {
               </Button>
             </>
           )}
-          <Button size="sm" variant="ghost" className="rounded-sm">
-            <SlidersHorizontal />
-            Add Filter
-          </Button>
+          <UserFilterMenu value={filters} onChange={applyFilters} />
           <Button size="sm" variant="outline" className="rounded-sm">
             <ArrowDownToLine />
             Export
@@ -333,6 +348,7 @@ function UsersListPage() {
           </Button>
         </div>
       </header>
+      <UserFilterChips value={filters} onChange={applyFilters} />
       <div>
         <Table>
           <TableHeader className="bg-transparent">
@@ -500,7 +516,9 @@ function UsersListPage() {
                 <TableCell className="h-24 text-center" colSpan={8}>
                   {search.trim()
                     ? `No users match “${search.trim()}”.`
-                    : "No users found."}
+                    : activeFilterCount(filters) > 0
+                      ? "No users match the current filters."
+                      : "No users found."}
                 </TableCell>
               </TableRow>
             )}

@@ -1,16 +1,11 @@
 import type { RouteItemType } from "@/types"
-import PlaceholderPage from "@/shared/PlaceholderPage"
+import RolesPage from "./RolesPage"
 
 const route: RouteItemType = {
   path: "roles",
-  element: (
-    <PlaceholderPage
-      title="Roles"
-      description="Manage roles and permissions."
-    />
-  ),
+  element: <RolesPage />,
   auth: ["admin"],
-  settings: { page: { title: "Roles" } },
+  settings: { page: { title: "Roles & Permissions" } },
 }
 
 export default route

@@ -72,6 +72,30 @@ func RegisterUsersRoutes(app *fiber.App, h *handler.UserHandler, jwtMw fiber.Han
 	}
 }
 
+func RegisterRolesRoutes(app *fiber.App, h *handler.RoleHandler, jwtMw fiber.Handler, authz output.AuthzRepository) {
+	roles := app.Group("/api/v1/roles", jwtMw)
+
+	{
+		roles.Get("", middleware.RequirePermission(authz, "roles.manage"), h.Gets)
+		// Registered before "/:id" so the literal path wins the match.
+		roles.Get("/permissions", middleware.RequirePermission(authz, "roles.manage"), h.GetsPermissions)
+		roles.Get("/:id", middleware.RequirePermission(authz, "roles.manage"), h.GetByID)
+	}
+
+	{
+		roles.Post("", middleware.RequirePermission(authz, "roles.manage"), h.Create)
+	}
+
+	{
+		roles.Put("/:id", middleware.RequirePermission(authz, "roles.manage"), h.Update)
+		roles.Put("/:id/permissions", middleware.RequirePermission(authz, "roles.manage"), h.SetPermissions)
+	}
+
+	{
+		roles.Delete("/:id", middleware.RequirePermission(authz, "roles.manage"), h.Delete)
+	}
+}
+
 func RegisterMediaRoutes(app *fiber.App, h *handler.MediaHandler, jwtMw fiber.Handler, authz output.AuthzRepository) {
 	media := app.Group("/api/v1/media", jwtMw)
 

@@ -13,10 +13,23 @@ import type {
   UserRole,
   UserSession,
   AuditRecord,
+  Permission,
+  Role,
 } from "@/types/cms"
 
 const api = apiService.enhanceEndpoints({
-  addTagTypes: ["Post", "Category", "Tag", "Revision", "Media", "User", "Role", "Session", "Activity"],
+  addTagTypes: [
+    "Post",
+    "Category",
+    "Tag",
+    "Revision",
+    "Media",
+    "User",
+    "Role",
+    "Permission",
+    "Session",
+    "Activity",
+  ],
 })
 
 export type PostListParams = {
@@ -75,6 +88,10 @@ export type UserListParams = {
   search?: string
   role_id?: number
   is_active?: boolean
+  created_at_gte?: string
+  created_at_lt?: string
+  last_login_at_null?: boolean
+  last_login_at_notnull?: boolean
   _page?: number
   _limit?: number
   _sort?: string
@@ -105,6 +122,27 @@ export type UpdateUserBody = {
   bio?: string
   role_id?: number
   is_active?: boolean
+}
+
+/**
+ * Role writes change the role list, the master lookup used by user forms, and
+ * the role badge rendered on every user row.
+ */
+const ROLE_TAGS = [
+  { type: "Role" as const, id: "DETAILED" },
+  { type: "Role" as const, id: "LIST" },
+  { type: "User" as const, id: "LIST" },
+]
+
+export type RoleBody = {
+  name?: string
+  slug?: string
+  color?: string
+}
+
+export type CreateRoleBody = RoleBody & {
+  name: string
+  permission_ids?: number[]
 }
 
 export const cmsApi = api.injectEndpoints({
@@ -197,8 +235,7 @@ export const cmsApi = api.injectEndpoints({
       // so map the search box to a case-insensitive name LIKE filter.
       query: (arg) => ({
         url: "/api/v1/categories",
-        params:
-          arg && arg.search ? { name_contains: arg.search } : undefined,
+        params: arg && arg.search ? { name_contains: arg.search } : undefined,
       }),
       transformResponse: (res: ApiEnvelope<Category[]>) => res.payload ?? [],
       providesTags: [{ type: "Category", id: "LIST" }],
@@ -260,7 +297,8 @@ export const cmsApi = api.injectEndpoints({
     getUser: build.query<UserAccount, number | string>({
       query: (id) => `/api/v1/users/${id}`,
       transformResponse: (res: ApiEnvelope<UserAccount>) => res.payload,
-      providesTags: (result) => (result ? [{ type: "User", id: result.id }] : []),
+      providesTags: (result) =>
+        result ? [{ type: "User", id: result.id }] : [],
     }),
 
     createUser: build.mutation<UserAccount, CreateUserBody>({
@@ -374,6 +412,60 @@ export const cmsApi = api.injectEndpoints({
       providesTags: [{ type: "Role", id: "LIST" }],
     }),
 
+    /** Roles with their permission set — needs the "roles.manage" permission. */
+    listRolesDetailed: build.query<Role[], void>({
+      query: () => ({
+        url: "/api/v1/roles",
+        params: { _limit: 100, _sort: "id", _order: "ASC" },
+      }),
+      transformResponse: (res: ApiEnvelope<Role[]>) => res.payload ?? [],
+      providesTags: [{ type: "Role", id: "DETAILED" }],
+    }),
+
+    listPermissions: build.query<Permission[], void>({
+      query: () => ({
+        url: "/api/v1/roles/permissions",
+        params: { _limit: 200, _sort: "slug", _order: "ASC" },
+      }),
+      transformResponse: (res: ApiEnvelope<Permission[]>) => res.payload ?? [],
+      providesTags: [{ type: "Permission", id: "LIST" }],
+    }),
+
+    createRole: build.mutation<Role, CreateRoleBody>({
+      query: (body) => ({ url: "/api/v1/roles", method: "POST", body }),
+      transformResponse: (res: ApiEnvelope<Role>) => res.payload,
+      invalidatesTags: ROLE_TAGS,
+    }),
+
+    updateRole: build.mutation<Role, { id: number; body: RoleBody }>({
+      query: ({ id, body }) => ({
+        url: `/api/v1/roles/${id}`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (res: ApiEnvelope<Role>) => res.payload,
+      invalidatesTags: ROLE_TAGS,
+    }),
+
+    setRolePermissions: build.mutation<
+      Role,
+      { id: number; permission_ids: number[] }
+    >({
+      query: ({ id, permission_ids }) => ({
+        url: `/api/v1/roles/${id}/permissions`,
+        method: "PUT",
+        body: { permission_ids },
+      }),
+      transformResponse: (res: ApiEnvelope<Role>) => res.payload,
+      invalidatesTags: [{ type: "Role", id: "DETAILED" }],
+    }),
+
+    deleteRole: build.mutation<{ message: string }, number>({
+      query: (id) => ({ url: `/api/v1/roles/${id}`, method: "DELETE" }),
+      transformResponse: (res: ApiEnvelope<{ message: string }>) => res.payload,
+      invalidatesTags: ROLE_TAGS,
+    }),
+
     listTags: build.query<Tag[], void>({
       query: () => "/api/v1/tags",
       transformResponse: (res: ApiEnvelope<Tag[]>) => res.payload ?? [],
@@ -429,6 +521,12 @@ export const {
   useDeleteUserMutation,
   useSetUserPasswordMutation,
   useListRolesQuery,
+  useListRolesDetailedQuery,
+  useListPermissionsQuery,
+  useCreateRoleMutation,
+  useUpdateRoleMutation,
+  useSetRolePermissionsMutation,
+  useDeleteRoleMutation,
   useCheckEmailAvailableQuery,
   useListUserSessionsQuery,
   useRevokeUserSessionMutation,

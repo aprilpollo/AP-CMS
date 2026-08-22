@@ -61,8 +61,12 @@ const navGroups: NavGroup[] = [
     items: [
       {
         title: "Users & Roles",
-        url: "/users",
+        url: "#",
         icon: UsersRound,
+        items: [
+          { title: "Users", url: "/users" },
+          { title: "Roles & Permissions", url: "/roles" },
+        ],
       },
       {
         title: "Security",

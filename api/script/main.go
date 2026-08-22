@@ -28,8 +28,9 @@ type lookupItem struct {
 }
 
 type roleItem struct {
-	Name string `json:"name"`
-	Slug string `json:"slug"`
+	Name  string `json:"name"`
+	Slug  string `json:"slug"`
+	Color string `json:"color"`
 }
 
 type permItem struct {
@@ -45,14 +46,14 @@ type settingItem struct {
 }
 
 type userItem struct {
-	Email       string `json:"email"`
-	AvatarURL  *string `json:"avatar_url,omitempty"`
-	DisplayName string `json:"display_name"`
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_name"`
+	Email       string  `json:"email"`
+	AvatarURL   *string `json:"avatar_url,omitempty"`
+	DisplayName string  `json:"display_name"`
+	FirstName   string  `json:"first_name"`
+	LastName    string  `json:"last_name"`
 	Bio         *string `json:"bio,omitempty"`
-	Role        string `json:"role"`
-	Password    string `json:"password"`
+	Role        string  `json:"role"`
+	Password    string  `json:"password"`
 }
 
 type seedData struct {
@@ -153,7 +154,7 @@ func main() {
 
 	roleID := map[string]int64{}
 	for _, r := range seed.Roles {
-		m := models.RoleModel{Name: r.Name, Slug: r.Slug}
+		m := models.RoleModel{Name: r.Name, Slug: r.Slug, Color: r.Color}
 		err := db.GetDB().Where("slug = ?", r.Slug).FirstOrCreate(&m).Error
 		appendResultRow(mTable, "role:"+r.Slug, err, &failCount, &successCount)
 		roleID[r.Slug] = m.ID
@@ -205,7 +206,7 @@ func main() {
 			appendResultRow(mTable, u.Email, err, &failCount, &successCount)
 			continue
 		}
-		
+
 		var rid int64
 		if id, ok := roleID[u.Role]; ok {
 			rid = id

@@ -23,7 +23,6 @@ import ThemeToggle from "@/shared/ThemeToggle"
 import useUser from "@/auth/hooks/useUser"
 import Link from "@/shared/Link"
 
-
 // Map pathname → readable label
 const PAGE_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -33,6 +32,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/inbox": "Inbox",
   "/my-work": "My Work",
   "/members": "Members",
+  "/roles": "Roles & Permissions",
   "/settings": "Settings",
 }
 

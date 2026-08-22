@@ -28,4 +28,4 @@ dist-ssr
 docker/data
 .agents
 .claude
-skills-lock.json
+skills-lock.json.claude/skills

@@ -58,6 +58,7 @@ func main() {
 	mediaRepo := repository.NewMediaRepository(db.GetDB())
 	postRepo := repository.NewPostRepository(db.GetDB())
 	categoriesRepo := repository.NewCategoriesRepository(db.GetDB())
+	roleRepo := repository.NewRoleRepository(db.GetDB())
 	tagRepo := repository.NewTagRepository(db.GetDB())
 	sessionStore := cache.NewSessionStore(redis)
 	emailSender := email.NewClient(cfg.EmailAPI.ServiceURL)
@@ -83,6 +84,7 @@ func main() {
 	mediaSvc := services.NewMediaService(mediaRepo, fileStorage)
 	postSvc := services.NewPostService(postRepo, tagRepo)
 	categoriesSvc := services.NewCategoriesService(categoriesRepo)
+	roleSvc := services.NewRoleService(roleRepo)
 	tagSvc := services.NewTagService(tagRepo)
 
 	// --- Handlers (input adapters) ---
@@ -92,6 +94,7 @@ func main() {
 	mediaHandler := handler.NewMediaHandler(mediaSvc)
 	postHandler := handler.NewPostHandler(postSvc, authzRepo)
 	categoriesHandler := handler.NewCategoriesHandler(categoriesSvc)
+	roleHandler := handler.NewRoleHandler(roleSvc)
 	tagHandler := handler.NewTagHandler(tagSvc)
 
 	// --- Middleware ---
@@ -144,6 +147,7 @@ func main() {
 	routes.RegisterMediaRoutes(app, mediaHandler, jwtMiddleware, authzRepo)
 	routes.RegisterPostsRoutes(app, postHandler, jwtMiddleware, authzRepo)
 	routes.RegisterCategoriesRoutes(app, categoriesHandler, jwtMiddleware, authzRepo)
+	routes.RegisterRolesRoutes(app, roleHandler, jwtMiddleware, authzRepo)
 	routes.RegisterTagsRoutes(app, tagHandler, jwtMiddleware, authzRepo)
 	// --- Start server ---
 	if err := app.Listen(fmt.Sprintf(":%s", cfg.App.ApiPort)); err != nil {
